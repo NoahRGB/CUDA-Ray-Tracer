@@ -12,6 +12,7 @@
   </ItemGroup>
   <ItemGroup>
     <None Include="fragShader.frag" />
+    <None Include="README.md" />
     <None Include="vertShader.vert" />
   </ItemGroup>
   <ItemGroup>
