@@ -6,4 +6,4 @@
 
 #include <cuda_runtime.h>
 
-__global__ void rayTrace(int width, int height, GLubyte* framebuffer, CUDASphere* objects, CUDALight* lights, Camera cam);
+__global__ void rayTrace(int width, int height, GLubyte* framebuffer, CUDASphere* objects, int objectCount, CUDALight* lights, Camera cam);

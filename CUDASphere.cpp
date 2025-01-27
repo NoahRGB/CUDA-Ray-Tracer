@@ -22,6 +22,11 @@ __host__ __device__ bool CUDASphere::hit(vec3 rayOrigin, vec3 rayDir, float& t0,
 
 
 	//if (tmpT0 > tmpT0) std::swap(tmpT0, tmpT0);
+	if (tmpT0 > tmpT1) {
+		float temp = tmpT1;
+		tmpT1 = tmpT0;
+		tmpT0 = temp;
+	}
 
 	t0 = tmpT0; t1 = tmpT1;
 	return true;

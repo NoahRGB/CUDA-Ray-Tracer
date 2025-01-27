@@ -24,11 +24,21 @@ public:
 
 	__host__ __device__ inline vec3& operator+=(const vec3& v2);
 	__host__ __device__ inline vec3& operator-=(const vec3& v2);
+	__host__ __device__ inline bool operator!=(const vec3& v2);
+	__host__ __device__ inline bool operator==(const vec3& v2);
 
 private:
 	float nums[3];
 
 };
+
+__host__ __device__ inline bool vec3::operator==(const vec3& v2) {
+	return (nums[0] == v2.x()) && (nums[1] == v2.y()) && (nums[2] == v2.z());
+}
+
+__host__ __device__ inline bool vec3::operator!=(const vec3& v2) {
+	return !((nums[0] == v2.x()) && (nums[1] == v2.y()) && (nums[2] == v2.z()));
+}
 
 __host__ __device__ inline vec3& vec3::operator+=(const vec3& v2) {
 	nums[0] = nums[0] + v2.x();
