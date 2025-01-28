@@ -75,9 +75,9 @@ void Camera::move(CameraMove moveType) {
 		position += right * moveSpeed;
 	}
 	else if (moveType == UP) {
-		position -= up * moveSpeed;
+		position -= vec3(0.0, 1.0, 0.0) * moveSpeed;
 	}
 	else if (moveType == DOWN) {
-		position += up * moveSpeed;
+		position += vec3(0.0, 1.0, 0.0) * moveSpeed;
 	}
 }

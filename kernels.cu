@@ -1,6 +1,8 @@
 #include "kernels.h"
 #include "Camera.h"
 
+#include <stdio.h>
+
 #include <device_launch_parameters.h>
 
 __device__ vec3 lighting(CUDAMaterial mat, vec3 lightPos, vec3 lightIntensity, vec3 point, vec3 eye, vec3 normal) {
@@ -91,8 +93,12 @@ __global__ void rayTrace(int width, int height, GLubyte* framebuffer, CUDASphere
 	int pixelIndex = y * width + x;
 	if (x >= width || y >= height) return;
 
+	if (pixelIndex > 250000) {
+		int a = 10;
+	}
 
-	vec3 cameraSpacePoint = cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), 1000, 1000);
+
+	vec3 cameraSpacePoint = cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), width, height);
 	Hit closestHit = rayCast(objects, objectCount, cam.getPosition(), normalise(cameraSpacePoint));
 
 	if (closestHit.hitPoint != vec3(0, 0, 0)) {

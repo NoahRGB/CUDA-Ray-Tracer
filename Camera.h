@@ -29,6 +29,7 @@ public:
 	float pitch;
 	float yaw;
 
+	Camera() {}
 	Camera(vec3 position, float fov);
 
 	__device__ __host__ vec3 rasterToCameraSpace(float x, float y, int width, int height);

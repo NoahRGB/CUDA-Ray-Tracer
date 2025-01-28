@@ -15,6 +15,14 @@ private:
 
 	Square square;
 
+	RayTracer rayTracer;
+
+	std::map<char, bool> keys;
+
+	double lastMouseX;
+	double lastMouseY;
+	bool firstMouse;
+
 	void display();
 	void setup();
 	static void reshape(GLFWwindow* window, int width, int height);

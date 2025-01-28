@@ -25,6 +25,7 @@ public:
 	void init(float width, float height);
 	void render();
 
+	void setSize(int width, int height);
 	void setTextureToPixels(GLubyte* pixels);
 };
 

@@ -8,14 +8,18 @@ Square::Square() {
 	vboID[1] = 0;
 }
 
+void Square::setSize(int width, int height) {
+	this->width = width;
+	this->height = height;
+}
+
 void Square::setTextureToPixels(GLubyte* pixels) {
 	glBindTexture(GL_TEXTURE_2D, textureName);
 	glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, pixels);
 }
 
 void Square::init(float width, float height) {
-	this->width = width;
-	this->height = height;
+	setSize(width, height);
 
 	if (!shader.load("Basic", "./vertShader.vert", "./fragShader.frag")) {
 		std::cout << "Failed to load shader" << std::endl;

@@ -14,63 +14,66 @@
 #include <map>
 #include <stdlib.h>
 
-GLubyte* framebuffer;
-CUDASphere* objects;
-int objectCount = 4;
-CUDALight* lights;
-Camera cam(vec3(0.0, 0.0, 0.0), 90.0);
-std::map<char, bool> keys;
-
-double lastMouseX;
-double lastMouseY;
-bool firstMouse = true;
 
 Window::Window(int width, int height, char* title, float fps) {
 	this->width = width;
 	this->height = height;
 	this->fps = fps;
 	this->title = title;
+	firstMouse = true;
 }
 
 void Window::reshape(GLFWwindow* window, int width, int height) {
-	//this->width = width;
-	//this->height = height;
+	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (win) {
+		win->width = width;
+		win->height = height;
 
-	glViewport(0.0, 0.0, width, height);
+		win->square.setSize(width, height);
+		win->rayTracer.resize(width, height);
+	}
+
+	//glViewport(0.0, 0.0, width, height);
 }
 
 void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
-	if (key == GLFW_KEY_W) keys['w'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['w'];
-	if (key == GLFW_KEY_A) keys['a'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['a'];
-	if (key == GLFW_KEY_S) keys['s'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['s'];
-	if (key == GLFW_KEY_D) keys['d'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['d'];
-	if (key == GLFW_KEY_SPACE) keys['_'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['_'];
-	if (key == GLFW_KEY_LEFT_SHIFT) keys['|'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['|'];
-	if (key == GLFW_KEY_I) keys['i'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['i'];
-	if (key == GLFW_KEY_J) keys['j'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['j'];
-	if (key == GLFW_KEY_K) keys['k'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['k'];
-	if (key == GLFW_KEY_L) keys['l'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : keys['l'];
+	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (win) {
+		if (key == GLFW_KEY_W) win->keys['w'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['w'];
+		if (key == GLFW_KEY_A) win->keys['a'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['a'];
+		if (key == GLFW_KEY_S) win->keys['s'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['s'];
+		if (key == GLFW_KEY_D) win->keys['d'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['d'];
+		if (key == GLFW_KEY_SPACE) win->keys['_'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['_'];
+		if (key == GLFW_KEY_LEFT_SHIFT) win->keys['|'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['|'];
+		if (key == GLFW_KEY_I) win->keys['i'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['i'];
+		if (key == GLFW_KEY_J) win->keys['j'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['j'];
+		if (key == GLFW_KEY_K) win->keys['k'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['k'];
+		if (key == GLFW_KEY_L) win->keys['l'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['l'];
 
-	if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
-		GLFWmonitor* monitor = glfwGetWindowMonitor(window);
-		const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-		glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-	}
+		if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
+			GLFWmonitor* monitor = glfwGetWindowMonitor(window);
+			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
+			glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
+		}
 
-	if (key == GLFW_KEY_V) {
-		std::cout << cam.getPosition().x() << " " << cam.getPosition().y() << " " << cam.getPosition().z() << " and " << cam.yaw << ", " << cam.pitch << std::endl;
+		if (key == GLFW_KEY_V) {
+			std::cout << win->rayTracer.cam.getPosition().x() << " " << win->rayTracer.cam.getPosition().y() << " " << win->rayTracer.cam.getPosition().z() << " and " << win->rayTracer.cam.yaw << ", " << win->rayTracer.cam.pitch << std::endl;
+		}
 	}
 }
 
 void Window::mouseInput(GLFWwindow* window, double x, double y) {
-	if (firstMouse) {
-		lastMouseX = x;
-		lastMouseY = y;
-		firstMouse = false;
-	}
+	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
+	if (win) {
+		if (win->firstMouse) {
+			win->lastMouseX = x;
+			win->lastMouseY = y;
+			win->firstMouse = false;
+		}
 
-	cam.mouseMovement(x - lastMouseX, y - lastMouseY);
-	lastMouseX = x, lastMouseY = y;
+		win->rayTracer.cam.mouseMovement(x - win->lastMouseX, y - win->lastMouseY);
+		win->lastMouseX = x, win->lastMouseY = y;
+	}
 }
 
 int Window::init() {
@@ -95,10 +98,11 @@ int Window::init() {
 		return -1;
 	}
 
+	glfwSetWindowUserPointer(window, this);
+
 	setup();
 
 	glfwSetFramebufferSizeCallback(window, reshape);
-	reshape(window, width, height);
 
 	glfwSetKeyCallback(window, keyInput);
 	glfwSetCursorPosCallback(window, mouseInput);
@@ -108,56 +112,11 @@ int Window::init() {
 void Window::setup() {
 	glClearColor(0.0, 0.0, 0.0, 0.0);
 
-	//auto time1 = std::chrono::high_resolution_clock::now();
-	//rt.rayTrace();
-	//auto time2 = std::chrono::high_resolution_clock::now();
-	//std::chrono::duration<double, std::milli> timeTaken = time2 - time1;
-	//std::cout << "Time taken: " << timeTaken.count() << std::endl
-
-	objects = new CUDASphere[objectCount];
-	cudaMallocManaged((void**)&objects, objectCount * sizeof(CUDASphere));
-	objects[0] = CUDASphere(vec3(0.0, 210.0, -120), 200.0f, { vec3(1, 0, 0), 0.7, 0.5, 0.0, 200.0 });
-	objects[1] = CUDASphere(vec3(-40.0, 0.0, -50.0), 15.0, { vec3(0.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
-	objects[2] = CUDASphere(vec3(0.0, 0.0, -50.0), 15.0, { vec3(1.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
-	objects[3] = CUDASphere(vec3(40.0, 0.0, -50.0), 15.0, { vec3(0.0, 0.0, 1.0), 0.1, 0.9, 0.5, 200.0 });
-
-	//objects[0] = CUDASphere(vec3(0.0, 0.0, -50.0), 15.0, { vec3(1.0, 1.0, 0.0), 0.3, 0.6, 0.8, 200.0 });
-	//objects[1] = CUDASphere(vec3(40.0, 0.0, -50.0), 15.0, { vec3(0.0, 0.0, 1.0), 0.3, 0.6, 0.8, 200.0 });
-
-	int lightCount = 1;
-	lights = new CUDALight[lightCount];
-	cudaMallocManaged((void**)&lights, lightCount * sizeof(CUDALight));
-	//lights[0] = { vec3(0.0, 0.0, 20.0), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.7, 0.0), 5, vec3(0.0, 0.0, 0.7), 2, 10 };
-	lights[0] = { vec3(0.0, -40.0, 0.0), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.7, 0.0), 5, vec3(0.0, 0.0, 0.7), 2, 10 };
-
-	cudaMallocManaged((void**)&framebuffer, 3 * width * height * sizeof(GLubyte));
-
-	cudaMallocManaged((void**)&cam, sizeof(Camera));
-
-	cudaDeviceSynchronize();
+	rayTracer.init(width, height);
 	square.init(width, height);
-	launchRayTrace();
-}
 
-void Window::launchRayTrace() {
-
-	// 32x32 grid of 32x32 blocks
-	// [32x32] x [32x32] = 1,048,576 threads
-	// 1000 x 1000 pixels = 1,000,000 pixels on screen
-
-	int N = 1000;
-	dim3 dimBlock(32, 32);
-	dim3 dimGrid((N + dimBlock.x - 1) / dimBlock.x, (N + dimBlock.y - 1) / dimBlock.y);
-
-	rayTrace<<<dimGrid, dimBlock>>>(width, height, framebuffer, objects, objectCount, lights, cam);
-	cudaError_t err = cudaGetLastError();
-	if (err != cudaSuccess) {
-		std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " << __FILE__ << ", line: " << __LINE__ << std::endl;
-	}
-
-	cudaDeviceSynchronize();
-
-	square.setTextureToPixels(framebuffer);
+	rayTracer.launchKernel();
+	square.setTextureToPixels(rayTracer.framebuffer);
 }
 
 void Window::run() {
@@ -167,67 +126,49 @@ void Window::run() {
 
 		display();
 	}
-
-	delete objects;
-	delete lights;
-	delete framebuffer;
-
 	glfwTerminate();
 }
 
 void Window::display() {
 	if (keys['w']) {
-		cam.move(cam.FORWARD);
+		rayTracer.cam.move(rayTracer.cam.FORWARD);
 	}
 	if (keys['s']) {
-		cam.move(cam.BACKWARD);
+		rayTracer.cam.move(rayTracer.cam.BACKWARD);
 	}
 	if (keys['a']) {
-		cam.move(cam.LEFT);
+		rayTracer.cam.move(rayTracer.cam.LEFT);
 	}
 	if (keys['d']) {
-		cam.move(cam.RIGHT);
+		rayTracer.cam.move(rayTracer.cam.RIGHT);
 	}
 	if (keys['_']) {
-		cam.move(cam.UP);
+		rayTracer.cam.move(rayTracer.cam.UP);
 	}
 	if (keys['|']) {
-		cam.move(cam.DOWN);
+		rayTracer.cam.move(rayTracer.cam.DOWN);
 	}
 	if (keys['i']) {
-		//objects[2].center = vec3(objects[2].center.x(), objects[2].center.y(), objects[2].center.z() - 1);
-		lights[0].position = vec3(lights[0].position.x(), lights[0].position.y(), lights[0].position.z() - 1);
+		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x(), rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z() - 1);
 	}
 	if (keys['j']) {
-		//objects[2].center = vec3(objects[2].center.x(), objects[2].center.y(), objects[2].center.z() - 1);
-		lights[0].position = vec3(lights[0].position.x() - 1, lights[0].position.y(), lights[0].position.z());
+		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x() - 1, rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z());
 	}
 	if (keys['k']) {
-		//objects[2].center = vec3(objects[2].center.x(), objects[2].center.y(), objects[2].center.z() - 1);
-		lights[0].position = vec3(lights[0].position.x(), lights[0].position.y(), lights[0].position.z() + 1);
+		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x(), rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z() + 1);
 	}
 	if (keys['l']) {
-		//objects[2].center = vec3(objects[2].center.x(), objects[2].center.y(), objects[2].center.z() - 1);
-		lights[0].position = vec3(lights[0].position.x() + 1, lights[0].position.y(), lights[0].position.z());
+		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x() + 1, rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z());
 	}
-
-	//float targetFrameDuration = 1000 / fps;
-	//auto frameStartTime = std::chrono::high_resolution_clock::now();
-
-	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	// ####### render #######
 
-	launchRayTrace();
+	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+	rayTracer.launchKernel();
+	square.setTextureToPixels(rayTracer.framebuffer);
 	square.render();
 
 	// ######################
-
-	//auto frameEndTime = std::chrono::high_resolution_clock::now();
-	//std::chrono::duration<double, std::milli> frameDuration = frameEndTime - frameStartTime;
-	//float sleepDuration = targetFrameDuration - (float)frameDuration.count();
-	//if (sleepDuration > 0) {
-	//	std::this_thread::sleep_for(std::chrono::milliseconds((int)sleepDuration));
-	//}
 }
 
