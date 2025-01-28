@@ -5,7 +5,7 @@
 
 int main() {
 	
-	Window window(1000, 1000, (char*)"Ray Tracing");
+	Window window(1000, 1000, "Ray Tracing");
 	
 	if (window.init() == 0) {
 		window.run();

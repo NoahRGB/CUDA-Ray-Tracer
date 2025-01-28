@@ -22,7 +22,7 @@ RayTracer::~RayTracer() {
 void RayTracer::init(int width, int height) {
 	this->width = width;
 	this->height = height;
-	cam = Camera(vec3(0.0, 0.0, 0.0), 90.0);
+	cam = Camera(vec3(0.0, 0.0, 1.0), 90.0);
 	objectCount = 4;
 	initialiseScene();
 }

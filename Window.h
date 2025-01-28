@@ -6,6 +6,8 @@
 #include "Square.h"
 #include "RayTracer.h"
 
+#include <chrono>
+
 class Window {
 private:
 	int width, height;
@@ -18,6 +20,9 @@ private:
 	RayTracer rayTracer;
 
 	std::map<char, bool> keys;
+
+	double savedTime;
+	int frameCount;
 
 	double lastMouseX;
 	double lastMouseY;

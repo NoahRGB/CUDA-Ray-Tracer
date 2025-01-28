@@ -21,7 +21,6 @@
     <ClCompile Include="main.cpp" />
     <CudaCompile Include="RayTracer.cpp" />
     <ClCompile Include="Shader.cpp" />
-    <ClCompile Include="Sphere.cpp" />
     <ClCompile Include="Square.cpp" />
     <CudaCompile Include="utils.cpp" />
     <CudaCompile Include="Window.cpp" />
@@ -30,7 +29,6 @@
     <CudaCompile Include="CUDASphere.h" />
     <CudaCompile Include="Camera.h" />
     <ClInclude Include="kernels.h" />
-    <ClInclude Include="Object.h" />
     <CudaCompile Include="RayTracer.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Sphere.h" />

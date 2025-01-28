@@ -31,9 +31,9 @@ void Window::reshape(GLFWwindow* window, int width, int height) {
 
 		win->square.setSize(width, height);
 		win->rayTracer.resize(width, height);
-	}
 
-	//glViewport(0.0, 0.0, width, height);
+		glViewport(0.0, 0.0, width, height);
+	}
 }
 
 void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -66,8 +66,8 @@ void Window::mouseInput(GLFWwindow* window, double x, double y) {
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 	if (win) {
 		if (win->firstMouse) {
-			win->lastMouseX = x;
-			win->lastMouseY = y;
+			win->lastMouseX = x / 2;
+			win->lastMouseY = y / 2;
 			win->firstMouse = false;
 		}
 
@@ -114,12 +114,15 @@ void Window::setup() {
 
 	rayTracer.init(width, height);
 	square.init(width, height);
+	//mouseInput(window, width / 2, height / 2);
 
 	rayTracer.launchKernel();
 	square.setTextureToPixels(rayTracer.framebuffer);
 }
 
 void Window::run() {
+	savedTime = glfwGetTime();
+	frameCount = 0;
 	while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
@@ -159,6 +162,16 @@ void Window::display() {
 	}
 	if (keys['l']) {
 		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x() + 1, rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z());
+	}
+
+	// ##### fps display #####
+
+	double currentTime = glfwGetTime();
+	frameCount++;
+	if (currentTime - savedTime >= 1.0) {
+		std::cout << frameCount << "fps" << std::endl;
+		frameCount = 0;
+		savedTime = currentTime;
 	}
 
 	// ####### render #######

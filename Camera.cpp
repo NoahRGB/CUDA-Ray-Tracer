@@ -8,7 +8,7 @@ Camera::Camera(vec3 position, float fov) {
 	this->position = position;
 	this->fov = fov;
 
-	pitch = 0;
+	pitch = 1;
 	yaw = -90;
 
 	moveSpeed = 3.0;
