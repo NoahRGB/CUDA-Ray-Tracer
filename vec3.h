@@ -23,6 +23,7 @@ public:
 	__host__ __device__ inline float length() const { return sqrt(nums[0] * nums[0] + nums[1] * nums[1] + nums[2] * nums[2]); }
 
 	__host__ __device__ inline vec3& operator+=(const vec3& v2);
+	__host__ __device__ inline vec3& operator+=(int num);
 	__host__ __device__ inline vec3& operator-=(const vec3& v2);
 	__host__ __device__ inline bool operator!=(const vec3& v2);
 	__host__ __device__ inline bool operator==(const vec3& v2);
@@ -44,6 +45,13 @@ __host__ __device__ inline vec3& vec3::operator+=(const vec3& v2) {
 	nums[0] = nums[0] + v2.x();
 	nums[1] = nums[1] + v2.y();
 	nums[2] = nums[2] + v2.z();
+	return *this;
+}
+
+__host__ __device__ inline vec3& vec3::operator+=(int num) {
+	nums[0] = nums[0] + num;
+	nums[1] = nums[1] + num;
+	nums[2] = nums[2] + num;
 	return *this;
 }
 

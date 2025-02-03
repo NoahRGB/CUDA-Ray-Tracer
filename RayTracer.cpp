@@ -11,9 +11,6 @@ RayTracer::RayTracer() {
 }
 
 RayTracer::~RayTracer() {
-	//delete[] objects;
-	//delete[] lights;
-	//free(framebuffer);
 	cudaFree(framebuffer);
 	cudaFree(objects);
 	cudaFree(lights);
@@ -22,7 +19,7 @@ RayTracer::~RayTracer() {
 void RayTracer::init(int width, int height) {
 	this->width = width;
 	this->height = height;
-	cam = Camera(vec3(0.0, 0.0, 1.0), 90.0);
+	cam = Camera(vec3(0, 0, 0), 90.0);
 	objectCount = 4;
 	initialiseScene();
 }
@@ -32,9 +29,7 @@ void RayTracer::resize(int width, int height) {
 	this->width = width;
 	this->height = height;
 
-
 	cudaError_t err;
-
 	err = cudaFree(framebuffer);
 	if (err != cudaSuccess) {
 		std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " << __FILE__ << ", line: " << __LINE__ << std::endl;
@@ -56,13 +51,10 @@ void RayTracer::initialiseScene() {
 	objects[2] = CUDASphere(vec3(0.0, 0.0, -50.0), 15.0, { vec3(1.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
 	objects[3] = CUDASphere(vec3(40.0, 0.0, -50.0), 15.0, { vec3(0.0, 0.0, 1.0), 0.1, 0.9, 0.5, 200.0 });
 
-	//objects[0] = CUDASphere(vec3(0.0, 0.0, -50.0), 15.0, { vec3(1.0, 1.0, 0.0), 0.3, 0.6, 0.8, 200.0 });
-	//objects[1] = CUDASphere(vec3(40.0, 0.0, -50.0), 15.0, { vec3(0.0, 0.0, 1.0), 0.3, 0.6, 0.8, 200.0 });
-
 	int lightCount = 1;
 	lights = new CUDALight[lightCount];
 	cudaMallocManaged((void**)&lights, lightCount * sizeof(CUDALight));
-	lights[0] = { vec3(0.0, -40.0, 0.0), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.7, 0.0), 5, vec3(0.0, 0.0, 0.7), 2, 10 };
+	lights[0] = { vec3(0.0, -40.0, -50.0), vec3(1.0, 1.0, 1.0), vec3(0.0, 0.7, 0.0), 5, vec3(0.0, 0.0, 0.7), 2, 10 };
 
 	cudaMallocManaged((void**)&framebuffer, 3 * width * height * sizeof(GLubyte));
 

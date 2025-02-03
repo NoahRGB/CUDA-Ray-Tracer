@@ -8,7 +8,7 @@ Camera::Camera(vec3 position, float fov) {
 	this->position = position;
 	this->fov = fov;
 
-	pitch = 1;
+	pitch = 0;
 	yaw = -90;
 
 	moveSpeed = 3.0;
@@ -75,9 +75,9 @@ void Camera::move(CameraMove moveType) {
 		position += right * moveSpeed;
 	}
 	else if (moveType == UP) {
-		position -= vec3(0.0, 1.0, 0.0) * moveSpeed;
+		position[1] -= moveSpeed;
 	}
 	else if (moveType == DOWN) {
-		position += vec3(0.0, 1.0, 0.0) * moveSpeed;
+		position[1] += moveSpeed;
 	}
 }

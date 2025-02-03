@@ -20,8 +20,11 @@ __host__ __device__ bool CUDASphere::hit(vec3 rayOrigin, vec3 rayDir, float& t0,
 	float c = dot(L, L) - radius * radius;
 	if (!solveQuadratic(a, b, c, tmpT0, tmpT1)) return false;
 
+	if (tmpT0 < 0) {
+		tmpT0 = tmpT1;
+		if (tmpT0 < 0) return false;
+	}
 
-	//if (tmpT0 > tmpT0) std::swap(tmpT0, tmpT0);
 	if (tmpT0 > tmpT1) {
 		float temp = tmpT1;
 		tmpT1 = tmpT0;

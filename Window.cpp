@@ -20,12 +20,15 @@ Window::Window(int width, int height, char* title, float fps) {
 	this->height = height;
 	this->fps = fps;
 	this->title = title;
+
 	firstMouse = true;
 }
 
 void Window::reshape(GLFWwindow* window, int width, int height) {
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 	if (win) {
+
+		// update width & height for window, square and raytracer
 		win->width = width;
 		win->height = height;
 
@@ -66,11 +69,10 @@ void Window::mouseInput(GLFWwindow* window, double x, double y) {
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 	if (win) {
 		if (win->firstMouse) {
-			win->lastMouseX = x / 2;
-			win->lastMouseY = y / 2;
+			win->lastMouseX = x;
+			win->lastMouseY = y;
 			win->firstMouse = false;
 		}
-
 		win->rayTracer.cam.mouseMovement(x - win->lastMouseX, y - win->lastMouseY);
 		win->lastMouseX = x, win->lastMouseY = y;
 	}
@@ -106,6 +108,9 @@ int Window::init() {
 
 	glfwSetKeyCallback(window, keyInput);
 	glfwSetCursorPosCallback(window, mouseInput);
+
+	rayTracer.cam.updateDirection();
+
 	return 0;
 }
 
@@ -114,7 +119,6 @@ void Window::setup() {
 
 	rayTracer.init(width, height);
 	square.init(width, height);
-	//mouseInput(window, width / 2, height / 2);
 
 	rayTracer.launchKernel();
 	square.setTextureToPixels(rayTracer.framebuffer);
@@ -152,16 +156,16 @@ void Window::display() {
 		rayTracer.cam.move(rayTracer.cam.DOWN);
 	}
 	if (keys['i']) {
-		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x(), rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z() - 1);
+		rayTracer.lights[0].position[2] -= 1;
 	}
 	if (keys['j']) {
-		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x() - 1, rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z());
+		rayTracer.lights[0].position[0] -= 1;
 	}
 	if (keys['k']) {
-		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x(), rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z() + 1);
+		rayTracer.lights[0].position[2] += 1;
 	}
 	if (keys['l']) {
-		rayTracer.lights[0].position = vec3(rayTracer.lights[0].position.x() + 1, rayTracer.lights[0].position.y(), rayTracer.lights[0].position.z());
+		rayTracer.lights[0].position[0] += 1;
 	}
 
 	// ##### fps display #####
