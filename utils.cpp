@@ -29,7 +29,3 @@ __host__ __device__ bool solveQuadratic(const float& a, const float& b, const fl
 	}
 	return true;
 }
-
-__host__ __device__ float radians(float angle) {
-	return angle * 0.01745329251994329576923690768489;
-}

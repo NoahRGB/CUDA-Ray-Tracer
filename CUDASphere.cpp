@@ -2,11 +2,11 @@
 #include "utils.h"
 
 CUDASphere::CUDASphere() {
-	center = vec3(0.0, 0.0, 0.0);
+	position = vec3(0.0, 0.0, 0.0);
 }
 
 CUDASphere::CUDASphere(vec3 center, float radius, CUDAMaterial mat) {
-	this->center = center;
+	this->position = center;
 	this->radius = radius;
 	this->mat = mat;
 }
@@ -14,7 +14,7 @@ CUDASphere::CUDASphere(vec3 center, float radius, CUDAMaterial mat) {
 __host__ __device__ bool CUDASphere::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {
 	float tmpT0, tmpT1;
 
-	vec3 L = rayOrigin - center;
+	vec3 L = rayOrigin - position;
 	float a = dot(rayDir, rayDir);
 	float b = 2 * dot(rayDir, L);
 	float c = dot(L, L) - radius * radius;
@@ -36,5 +36,5 @@ __host__ __device__ bool CUDASphere::hit(vec3 rayOrigin, vec3 rayDir, float& t0,
 }
 
 __host__ __device__ vec3 CUDASphere::normalAt(vec3 point) {
-	return point - center;
+	return point - position;
 }

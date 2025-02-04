@@ -62,7 +62,6 @@ __host__ __device__ struct Hit {
 };
 
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);
-__host__ __device__ float radians(float angle);
 __host__ __device__ vec3 reflect(vec3 a, vec3 b);
 
 template <typename T>
@@ -73,4 +72,8 @@ __host__ __device__ T min(T x, T y) {
 template <typename T>
 __host__ __device__ T max(T x, T y) {
 	return (x > y) ? x : y;
+}
+
+__host__ __device__ float inline radians(float angle) {
+	return angle * 0.01745329251994329576923690768489;
 }

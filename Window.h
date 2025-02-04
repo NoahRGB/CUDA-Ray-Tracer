@@ -11,7 +11,6 @@
 class Window {
 private:
 	int width, height;
-	float fps;
 	char* title;
 	GLFWwindow* window;
 
@@ -24,6 +23,7 @@ private:
 	double savedTime;
 	int frameCount;
 
+	bool mouseEnabled;
 	double lastMouseX;
 	double lastMouseY;
 	bool firstMouse;
@@ -37,7 +37,7 @@ private:
 
 
 public:
-	Window(int width, int height, char* title, float fps=60.0);
+	Window(int width, int height, char* title);
 
 	int init();
 	void run();

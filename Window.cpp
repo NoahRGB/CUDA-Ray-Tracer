@@ -4,9 +4,13 @@
 #include "kernels.h"
 #include "CUDASphere.h"
 #include "Camera.h"
+#include "utils.h"
 
 #include <gl/glew.h>
 #include <GLFW/glfw3.h>
+#include "imgui/imgui.h"
+#include "imgui/imgui_impl_glfw.h"
+#include "imgui/imgui_impl_opengl3.h"
 
 #include <chrono>
 #include <thread>
@@ -15,12 +19,13 @@
 #include <stdlib.h>
 
 
-Window::Window(int width, int height, char* title, float fps) {
+Window::Window(int width, int height, char* title) {
 	this->width = width;
 	this->height = height;
-	this->fps = fps;
 	this->title = title;
+	rayTracer.config.fps = 0;
 
+	mouseEnabled = true;
 	firstMouse = true;
 }
 
@@ -60,7 +65,18 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 		}
 
 		if (key == GLFW_KEY_V) {
-			std::cout << win->rayTracer.cam.getPosition().x() << " " << win->rayTracer.cam.getPosition().y() << " " << win->rayTracer.cam.getPosition().z() << " and " << win->rayTracer.cam.yaw << ", " << win->rayTracer.cam.pitch << std::endl;
+			std::cout << win->rayTracer.scene.cam.getPosition().x() << " " << win->rayTracer.scene.cam.getPosition().y() << " " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
+		}
+
+		if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+			if (!win->mouseEnabled) {
+				win->mouseEnabled = true;
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+			}
+			else {
+				win->mouseEnabled = false;
+				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+			}
 		}
 	}
 }
@@ -68,13 +84,15 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 void Window::mouseInput(GLFWwindow* window, double x, double y) {
 	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
 	if (win) {
-		if (win->firstMouse) {
-			win->lastMouseX = x;
-			win->lastMouseY = y;
-			win->firstMouse = false;
+		if (win->mouseEnabled) {
+			if (win->firstMouse) {
+				win->lastMouseX = x;
+				win->lastMouseY = y;
+				win->firstMouse = false;
+			}
+			win->rayTracer.scene.cam.mouseMovement(x - win->lastMouseX, y - win->lastMouseY);
+			win->lastMouseX = x, win->lastMouseY = y;
 		}
-		win->rayTracer.cam.mouseMovement(x - win->lastMouseX, y - win->lastMouseY);
-		win->lastMouseX = x, win->lastMouseY = y;
 	}
 }
 
@@ -109,7 +127,14 @@ int Window::init() {
 	glfwSetKeyCallback(window, keyInput);
 	glfwSetCursorPosCallback(window, mouseInput);
 
-	rayTracer.cam.updateDirection();
+	rayTracer.scene.cam.updateDirection();
+
+	IMGUI_CHECKVERSION();
+	ImGui::CreateContext();
+	ImGuiIO& io = ImGui::GetIO();
+	io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+	ImGui_ImplGlfw_InitForOpenGL(window, true);
+	ImGui_ImplOpenGL3_Init();
 
 	return 0;
 }
@@ -131,41 +156,57 @@ void Window::run() {
 		glfwSwapBuffers(window);
 		glfwPollEvents();
 
+		ImGui_ImplOpenGL3_NewFrame();
+		ImGui_ImplGlfw_NewFrame();
+		ImGui::NewFrame();
+
+		ImGui::Begin("Ray Tracing");
+		ImGui::Text("FPS: %d", rayTracer.config.fps);
+		ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
+		ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
+		ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
+		ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
+		
+		ImGui::End();
+
 		display();
 	}
 	glfwTerminate();
+	ImGui_ImplOpenGL3_Shutdown();
+	ImGui_ImplGlfw_Shutdown();
+	ImGui::DestroyContext();
 }
 
 void Window::display() {
 	if (keys['w']) {
-		rayTracer.cam.move(rayTracer.cam.FORWARD);
+		rayTracer.scene.cam.move(rayTracer.scene.cam.FORWARD);
 	}
 	if (keys['s']) {
-		rayTracer.cam.move(rayTracer.cam.BACKWARD);
+		rayTracer.scene.cam.move(rayTracer.scene.cam.BACKWARD);
 	}
 	if (keys['a']) {
-		rayTracer.cam.move(rayTracer.cam.LEFT);
+		rayTracer.scene.cam.move(rayTracer.scene.cam.LEFT);
 	}
 	if (keys['d']) {
-		rayTracer.cam.move(rayTracer.cam.RIGHT);
+		rayTracer.scene.cam.move(rayTracer.scene.cam.RIGHT);
 	}
 	if (keys['_']) {
-		rayTracer.cam.move(rayTracer.cam.UP);
+		rayTracer.scene.cam.move(rayTracer.scene.cam.UP);
 	}
 	if (keys['|']) {
-		rayTracer.cam.move(rayTracer.cam.DOWN);
+		rayTracer.scene.cam.move(rayTracer.scene.cam.DOWN);
 	}
 	if (keys['i']) {
-		rayTracer.lights[0].position[2] -= 1;
+		rayTracer.scene.lights[0].position[2] -= 1;
 	}
 	if (keys['j']) {
-		rayTracer.lights[0].position[0] -= 1;
+		rayTracer.scene.lights[0].position[0] -= 1;
 	}
 	if (keys['k']) {
-		rayTracer.lights[0].position[2] += 1;
+		rayTracer.scene.lights[0].position[2] += 1;
 	}
 	if (keys['l']) {
-		rayTracer.lights[0].position[0] += 1;
+		rayTracer.scene.lights[0].position[0] += 1;
 	}
 
 	// ##### fps display #####
@@ -173,7 +214,7 @@ void Window::display() {
 	double currentTime = glfwGetTime();
 	frameCount++;
 	if (currentTime - savedTime >= 1.0) {
-		std::cout << frameCount << "fps" << std::endl;
+		rayTracer.config.fps = frameCount;
 		frameCount = 0;
 		savedTime = currentTime;
 	}
@@ -187,5 +228,8 @@ void Window::display() {
 	square.render();
 
 	// ######################
+
+	ImGui::Render();
+	ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
 
