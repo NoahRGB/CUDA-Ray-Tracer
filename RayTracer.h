@@ -46,5 +46,6 @@ public:
 	void initialiseScene();
 	void launchKernel();
 	void resize(int width, int height);
+	void addSphere(vec3 pos, float radius, CUDAMaterial mat);
 };
 

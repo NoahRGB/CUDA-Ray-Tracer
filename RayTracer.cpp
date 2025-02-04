@@ -23,7 +23,7 @@ void RayTracer::init(int width, int height) {
 	this->width = width;
 	this->height = height;
 	scene.cam = Camera(vec3(0, 0, 0), 90.0);
-	scene.sphereCount = 3;
+	scene.sphereCount = 0;
 	scene.planeCount = 1;
 	scene.lightCount = 1;
 	initialiseScene();
@@ -52,9 +52,9 @@ void RayTracer::initialiseScene() {
 	scene.spheres = new CUDASphere[scene.sphereCount];
 	cudaMallocManaged((void**)&scene.spheres, scene.sphereCount * sizeof(CUDASphere));
 	//spheres[0] = CUDASphere(vec3(0.0, 210.0, -120), 200.0f, { vec3(1, 0, 0), 0.7, 0.5, 0.0, 200.0 });
-	scene.spheres[0] = CUDASphere(vec3(-40.0, 0.0, -50.0), 15.0, { vec3(0.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
-	scene.spheres[1] = CUDASphere(vec3(0.0, 0.0, -50.0), 15.0, { vec3(1.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
-	scene.spheres[2] = CUDASphere(vec3(40.0, 0.0, -50.0), 15.0, { vec3(0.0, 0.0, 1.0), 0.1, 0.9, 0.5, 200.0 });
+	//scene.spheres[0] = CUDASphere(vec3(-40.0, 0.0, -50.0), 15.0, { vec3(0.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
+	//scene.spheres[1] = CUDASphere(vec3(0.0, 0.0, -50.0), 15.0, { vec3(1.0, 1.0, 0.0), 0.1, 0.9, 0.5, 200.0 });
+	//scene.spheres[2] = CUDASphere(vec3(40.0, 0.0, -50.0), 15.0, { vec3(0.0, 0.0, 1.0), 0.1, 0.9, 0.5, 200.0 });
 
 	scene.planes = new Plane[scene.planeCount];
 	cudaMallocManaged((void**)&scene.planes, scene.planeCount * sizeof(Plane));
@@ -69,6 +69,21 @@ void RayTracer::initialiseScene() {
 	cudaMallocManaged((void**)&scene.cam, sizeof(Camera));
 
 	cudaDeviceSynchronize();
+}
+
+void RayTracer::addSphere(vec3 pos, float radius, CUDAMaterial mat) {
+	scene.sphereCount++;
+	CUDASphere* oldSpheres = scene.spheres;
+	cudaFree(scene.spheres);
+	cudaMallocManaged((void**)&scene.spheres, scene.sphereCount * sizeof(CUDASphere));
+
+	// copy over old spheres
+	for (int i = 0; i < scene.sphereCount - 1; i++) {
+		scene.spheres[i] = oldSpheres[i];
+	}
+
+	// add new one on the end
+	scene.spheres[scene.sphereCount - 1] = CUDASphere(pos, radius, mat);
 }
 
 void RayTracer::launchKernel() {

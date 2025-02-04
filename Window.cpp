@@ -162,11 +162,31 @@ void Window::run() {
 
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
+
+		ImGui::SeparatorText("Lighting");
 		ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
 		ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
 		ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
 		ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
-		
+
+		ImGui::SeparatorText("Create sphere");
+		static float posX = 0.0; static float posY = 0.0; static float posZ = 0.0; static float radius = 20.0;
+		static float r = 1.0; static float g = 0.0; static float b = 0.0;
+		static float ambient = 0.1; static float diffuse = 0.9; static float specular = 0.5;
+		ImGui::InputFloat("PosX", &posX);
+		ImGui::InputFloat("PosY", &posY);
+		ImGui::InputFloat("PosZ", &posZ);
+		ImGui::InputFloat("Radius", &radius);
+		ImGui::InputFloat("Red", &r);
+		ImGui::InputFloat("Green", &g);
+		ImGui::InputFloat("Blue", &b);
+		ImGui::InputFloat("Ambient", &ambient);
+		ImGui::InputFloat("Diffuse", &diffuse);
+		ImGui::InputFloat("Specular", &specular);
+		if (ImGui::Button("Create Sphere")) {
+			rayTracer.addSphere(vec3(posX, posY, posZ), radius, { vec3(r, g, b), ambient, diffuse, specular, 200.0 });
+		}
+
 		ImGui::End();
 
 		display();
