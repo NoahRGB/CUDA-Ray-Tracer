@@ -26,6 +26,7 @@ __host__ __device__ struct SceneConfig {
 	float shadowBias = 0.5;
 	bool renderHardShadows = true;
 	bool reflections = true;
+	int max_depth = 2;
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
 	bool specularLighting = true;
@@ -48,6 +49,6 @@ public:
 	void initialiseScene();
 	void launchKernel();
 	void resize(int width, int height);
-	void addSphere(vec3 pos, float radius, CUDAMaterial mat);
+	void addSphere(vec3 pos, float radius, CUDAMaterial mat, ObjectType objectType = Diffuse);
 };
 

@@ -5,11 +5,12 @@ CUDASphere::CUDASphere() {
 	position = vec3(0.0, 0.0, 0.0);
 }
 
-CUDASphere::CUDASphere(vec3 center, float radius, CUDAMaterial mat, bool debug) {
+CUDASphere::CUDASphere(vec3 center, float radius, CUDAMaterial mat, bool debug, ObjectType objectType) {
 	this->position = center;
 	this->radius = radius;
 	this->mat = mat;
 	this->debug = debug;
+	this->objectType = objectType;
 }
 
 __host__ __device__ bool CUDASphere::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {

@@ -175,6 +175,7 @@ void Window::run() {
 		static float posX = 0.0; static float posY = 0.0; static float posZ = 0.0; static float radius = 20.0;
 		static float r = 1.0; static float g = 0.0; static float b = 0.0;
 		static float ambient = 0.1; static float diffuse = 0.9; static float specular = 0.5;
+		static bool reflective = false;
 		ImGui::InputFloat("PosX", &posX);
 		ImGui::InputFloat("PosY", &posY);
 		ImGui::InputFloat("PosZ", &posZ);
@@ -185,8 +186,9 @@ void Window::run() {
 		ImGui::InputFloat("Ambient", &ambient);
 		ImGui::InputFloat("Diffuse", &diffuse);
 		ImGui::InputFloat("Specular", &specular);
+		ImGui::Checkbox("Reflective?", &reflective);
 		if (ImGui::Button("Create Sphere")) {
-			rayTracer.addSphere(vec3(posX, posY, posZ), radius, { vec3(r, g, b), ambient, diffuse, specular, 200.0 });
+			rayTracer.addSphere(vec3(posX, posY, posZ), radius, { vec3(r, g, b), ambient, diffuse, specular, 200.0 }, reflective ? Reflect : Diffuse);
 		}
 
 		ImGui::End();

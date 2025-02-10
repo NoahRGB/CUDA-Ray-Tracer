@@ -14,6 +14,7 @@ public:
 
 	vec3 position;
 	CUDAMaterial mat;
+	ObjectType objectType;
 	bool debug;
 
 	__host__ __device__ bool hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1);

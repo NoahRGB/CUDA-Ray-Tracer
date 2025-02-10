@@ -76,7 +76,7 @@ void RayTracer::initialiseScene() {
 	cudaDeviceSynchronize();
 }
 
-void RayTracer::addSphere(vec3 pos, float radius, CUDAMaterial mat) {
+void RayTracer::addSphere(vec3 pos, float radius, CUDAMaterial mat, ObjectType objectType) {
 	scene.sphereCount++;
 	CUDASphere* oldSpheres = scene.spheres;
 	cudaFree(scene.spheres);
@@ -88,7 +88,7 @@ void RayTracer::addSphere(vec3 pos, float radius, CUDAMaterial mat) {
 	}
 
 	// add new one on the end
-	scene.spheres[scene.sphereCount - 1] = CUDASphere(pos, radius, mat);
+	scene.spheres[scene.sphereCount - 1] = CUDASphere(pos, radius, mat, false, objectType);
 }
 
 void RayTracer::launchKernel() {

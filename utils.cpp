@@ -30,6 +30,6 @@ __host__ __device__ bool solveQuadratic(const float& a, const float& b, const fl
 	return true;
 }
 
-__host__ __device__ vec3 lightingReflect(vec3 a, vec3 b) {
+__host__ __device__ vec3 lightingReflect(vec3& a, vec3& b) {
 	return a - 2 * dot(a, b) * b;
 }

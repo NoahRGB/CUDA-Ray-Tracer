@@ -53,7 +53,7 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 				if (t0 < hit.t) {
 					vec3 hitPoint = origin + t0 * dir;
 					vec3 normal = objects[i].normalAt(hitPoint);
-					hit = { t0, objects[i].mat, hitPoint, normal, objects[i].position };
+					hit = { t0, objects[i].mat, hitPoint, normal, objects[i].position, objects[i].objectType };
 				}
 				//}
 			}
@@ -71,7 +71,7 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 	return false;
 }
 
-__device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, int depth = 1) {
+__device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, int depth = 1) {
 	Hit sphereHit, planeHit, closestHit;
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit);
@@ -79,15 +79,67 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 
 	if (sphereTrace || planeTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
-	
-		if (config.reflections) {
 
+		if (config.renderHardShadows) {
+			Hit shadowHit;
+			bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit, closestHit.objectPos);
+			return col * !shadowTrace;
+		}
+
+		return col;
+	}
+
+	return vec3(0.4, 0.4, 0.4);
+}
+
+__device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, int depth = 1) {
+	Hit sphereHit, planeHit, closestHit;
+	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit);
+	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit);
+	closestHit = (sphereHit.t < planeHit.t) ? sphereHit : planeHit;
+
+	if (sphereTrace || planeTrace) {
+		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
+		
+		if (config.reflections) {
+			if (depth <= config.max_depth) {
+				vec3 r = normalise(lightingReflect(dir, closestHit.normal));
+				vec3 reflectionCol = reflectionCast2(closestHit.hitPoint + closestHit.normal * config.shadowBias, r, scene, config, depth++);
+				col += 0.4 * reflectionCol;
+			}
 		}
 
 		if (config.renderHardShadows) {
 			Hit shadowHit;
 			bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit, closestHit.objectPos);
 			return col * !shadowTrace;
+		}
+
+		return col;
+	}
+
+	return vec3(0.4, 0.4, 0.4);
+}
+
+__device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config) {
+	Hit sphereHit, planeHit, closestHit;
+	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit);
+	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit);
+	closestHit = (sphereHit.t < planeHit.t) ? sphereHit : planeHit;
+
+	if (sphereTrace || planeTrace) {
+		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
+
+		if (config.reflections && closestHit.objectType == Reflect) {
+			vec3 r = normalise(lightingReflect(dir, closestHit.normal));
+			vec3 reflectionCol = reflectionCast(closestHit.hitPoint + closestHit.normal * config.shadowBias, r, scene, config);
+			col += reflectionCol;
+		}
+
+		if (config.renderHardShadows) {
+			Hit shadowHit;
+			bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit, closestHit.objectPos);
+			col = col * !shadowTrace;
 		}
 
 		return col;

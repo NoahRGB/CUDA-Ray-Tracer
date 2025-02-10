@@ -9,6 +9,16 @@
 
 #include "vec3.h"
 
+__host__ __device__ enum ObjectType {
+	Diffuse,
+	Reflect,
+};
+
+__host__ __device__ enum RayType {
+	PrimaryRay,
+	ShadowRay,
+};
+
 __host__ __device__ struct CUDALight {
 	vec3 position;
 	vec3 colour;
@@ -33,15 +43,11 @@ __host__ __device__ struct Hit {
 	vec3 hitPoint;
 	vec3 normal;
 	vec3 objectPos;
-};
-
-__host__ __device__ enum RayType {
-	PrimaryRay,
-	ShadowRay,
+	ObjectType objectType = Diffuse;
 };
 
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);
-__host__ __device__ vec3 lightingReflect(vec3 a, vec3 b);
+__host__ __device__ vec3 lightingReflect(vec3& a, vec3& b);
 
 template <typename T>
 __host__ __device__ T min(T x, T y) {

@@ -9,7 +9,7 @@ private:
 
 public:
 	Plane();
-	Plane(vec3 p, vec3 n, CUDAMaterial mat, bool debug = false);
+	Plane(vec3 p, vec3 n, CUDAMaterial mat, bool debug = false, ObjectType objectType = Diffuse);
 
 	vec3 n;
 
