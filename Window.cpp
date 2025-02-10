@@ -168,6 +168,8 @@ void Window::run() {
 		ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
 		ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
 		ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
+		ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
+		ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
 
 		ImGui::SeparatorText("Create sphere");
 		static float posX = 0.0; static float posY = 0.0; static float posZ = 0.0; static float radius = 20.0;
@@ -218,15 +220,19 @@ void Window::display() {
 	}
 	if (keys['i']) {
 		rayTracer.scene.lights[0].position[2] -= 1;
+		rayTracer.scene.spheres[0].position[2] -= 1;
 	}
 	if (keys['j']) {
 		rayTracer.scene.lights[0].position[0] -= 1;
+		rayTracer.scene.spheres[0].position[0] -= 1;
 	}
 	if (keys['k']) {
 		rayTracer.scene.lights[0].position[2] += 1;
+		rayTracer.scene.spheres[0].position[2] += 1;
 	}
 	if (keys['l']) {
 		rayTracer.scene.lights[0].position[0] += 1;
+		rayTracer.scene.spheres[0].position[0] += 1;
 	}
 
 	// ##### fps display #####

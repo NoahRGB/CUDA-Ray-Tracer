@@ -9,7 +9,7 @@ private:
 
 public:
 	Plane();
-	Plane(vec3 p, vec3 n, CUDAMaterial mat);
+	Plane(vec3 p, vec3 n, CUDAMaterial mat, bool debug = false);
 
 	vec3 n;
 

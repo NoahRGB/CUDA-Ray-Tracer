@@ -2,11 +2,13 @@
 
 #include "utils.h"
 
-Camera::Camera(vec3 position, float fov) {
+Camera::Camera(vec3 position, float fov, float aspectRatio) {
 	up = vec3(0.0, 1.0, 0.0);
 	direction = vec3(0.0, 0.0, 0.0);
 	this->position = position;
 	this->fov = fov;
+	fovFactor = tan(radians(fov / 2));
+	this->aspectRatio = aspectRatio;
 
 	pitch = 0;
 	yaw = -90;
@@ -18,7 +20,6 @@ Camera::Camera(vec3 position, float fov) {
 }
 
 __device__ __host__ vec3 Camera::rasterToCameraSpace(float x, float y, int width, int height)  {
-	float aspectRatio = width / (float)height;
 	// convert point defined in pixel space to normalised device coordinates
 	// (coordinates in the range [0, 1])
 	vec3 ndcPoint = vec3(x / width, y / height, 0);
@@ -27,8 +28,8 @@ __device__ __host__ vec3 Camera::rasterToCameraSpace(float x, float y, int width
 	vec3 screenPoint = vec3(2 * ndcPoint.x() - 1, 1 - 2 * ndcPoint.y(), 0);
 
 	// convert point in screen space to camera space using FOV and aspect ratio
-	float fovFactor = tan(radians(fov / 2));
-	vec3 cameraPoint = vec3(screenPoint.x() * aspectRatio * fovFactor, screenPoint.y() * fovFactor, 1);
+	//float fovFactor = tan(radians(fov / 2));
+	vec3 cameraPoint = vec3(screenPoint.x() * 1 * fovFactor, screenPoint.y() * fovFactor, 1);
 
 	// use direction vectors to reach final coordinate   
 	vec3 final = cameraPoint.x() * right + cameraPoint.y() * up + cameraPoint.z() * direction;

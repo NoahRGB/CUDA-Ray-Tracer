@@ -6,13 +6,12 @@
 class Camera {
 
 private:
-
 	vec3 up;
 	vec3 right;
 	vec3 direction;
 	vec3 position;
-
-	float fov;
+	float fov, fovFactor;
+	float aspectRatio;
 	float near, far;
 
 	float moveSpeed;
@@ -20,6 +19,8 @@ private:
 
 
 public:
+
+
 	enum CameraMove {
 		FORWARD, BACKWARD,
 		LEFT, RIGHT,
@@ -30,7 +31,7 @@ public:
 	float yaw;
 
 	Camera() {}
-	Camera(vec3 position, float fov);
+	Camera(vec3 position, float fov, float aspectRatio);
 
 	__device__ __host__ vec3 rasterToCameraSpace(float x, float y, int width, int height);
 	__device__ __host__ void updateDirection();

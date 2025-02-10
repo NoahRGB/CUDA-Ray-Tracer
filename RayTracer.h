@@ -23,7 +23,9 @@ __host__ __device__ struct Scene {
 
 __host__ __device__ struct SceneConfig {
 	int fps;
+	float shadowBias = 0.5;
 	bool renderHardShadows = true;
+	bool reflections = true;
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
 	bool specularLighting = true;
