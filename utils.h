@@ -44,6 +44,7 @@ __host__ __device__ struct Hit {
 	vec3 normal;
 	vec3 objectPos;
 	ObjectType objectType = Diffuse;
+	bool debug = false;
 };
 
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);

@@ -2,7 +2,7 @@
 
 #include "utils.h"
 
-Camera::Camera(vec3 position, float fov, float aspectRatio) {
+Camera::Camera(vec3 position, float fov, float aspectRatio, float yaw, float pitch) {
 	up = vec3(0.0, 1.0, 0.0);
 	direction = vec3(0.0, 0.0, 0.0);
 	this->position = position;
@@ -10,8 +10,8 @@ Camera::Camera(vec3 position, float fov, float aspectRatio) {
 	fovFactor = tan(radians(fov / 2));
 	this->aspectRatio = aspectRatio;
 
-	pitch = 0;
-	yaw = -90;
+	this->pitch = pitch;
+	this->yaw = yaw;
 
 	moveSpeed = 3.0;
 	sensitivity = 0.1;

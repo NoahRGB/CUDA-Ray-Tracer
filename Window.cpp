@@ -170,6 +170,7 @@ void Window::run() {
 		ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
 		ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
 		ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
+		ImGui::SliderFloat("Reflection strength", &rayTracer.config.reflectionStrength, 0.0, 1.0);
 
 		ImGui::SeparatorText("Create sphere");
 		static float posX = 0.0; static float posY = 0.0; static float posZ = 0.0; static float radius = 20.0;

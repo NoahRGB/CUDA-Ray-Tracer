@@ -31,7 +31,7 @@ public:
 	float yaw;
 
 	Camera() {}
-	Camera(vec3 position, float fov, float aspectRatio);
+	Camera(vec3 position, float fov, float aspectRatio, float yaw = -90, float pitch = 0);
 
 	__device__ __host__ vec3 rasterToCameraSpace(float x, float y, int width, int height);
 	__device__ __host__ void updateDirection();

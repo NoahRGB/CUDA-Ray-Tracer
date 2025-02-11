@@ -24,12 +24,14 @@ __host__ __device__ struct Scene {
 __host__ __device__ struct SceneConfig {
 	int fps;
 	float shadowBias = 0.5;
-	bool renderHardShadows = true;
+	bool renderHardShadows = false;
 	bool reflections = true;
-	int max_depth = 2;
+	int maxDepth = 2;
+	float reflectionStrength = 0.5;
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
 	bool specularLighting = true;
+	vec3 backgroundCol = vec3(0.8, 0.8, 0.8);
 };
 
 class RayTracer {
