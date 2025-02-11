@@ -162,7 +162,7 @@ void Window::run() {
 
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
-
+		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
 		ImGui::SeparatorText("Lighting");
 		ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
 		ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
@@ -171,11 +171,12 @@ void Window::run() {
 		ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
 		ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
 		ImGui::SliderFloat("Reflection strength", &rayTracer.config.reflectionStrength, 0.0, 1.0);
+		ImGui::SliderFloat("Shadow intensity", &rayTracer.config.shadowIntensity, 0.0, 1.0);
 
 		ImGui::SeparatorText("Create sphere");
-		static float posX = 0.0; static float posY = 0.0; static float posZ = 0.0; static float radius = 20.0;
-		static float r = 1.0; static float g = 0.0; static float b = 0.0;
-		static float ambient = 0.1; static float diffuse = 0.9; static float specular = 0.5;
+		static float posX = 0.0, posY = 0.0, posZ = 0.0, radius = 20.0;
+		static float r = 1.0, g = 0.0,  b = 0.0;
+		static float ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
 		static bool reflective = false;
 		ImGui::InputFloat("PosX", &posX);
 		ImGui::InputFloat("PosY", &posY);
@@ -187,9 +188,10 @@ void Window::run() {
 		ImGui::InputFloat("Ambient", &ambient);
 		ImGui::InputFloat("Diffuse", &diffuse);
 		ImGui::InputFloat("Specular", &specular);
+		ImGui::InputFloat("Shininess", &shininess);
 		ImGui::Checkbox("Reflective?", &reflective);
 		if (ImGui::Button("Create Sphere")) {
-			rayTracer.addSphere(vec3(posX, posY, posZ), radius, { vec3(r, g, b), ambient, diffuse, specular, 200.0 }, reflective ? Reflect : Diffuse);
+			rayTracer.addSphere(vec3(posX, posY, posZ), radius, { vec3(r, g, b), ambient, diffuse, specular, shininess }, reflective ? Reflect : Diffuse);
 		}
 
 		ImGui::End();

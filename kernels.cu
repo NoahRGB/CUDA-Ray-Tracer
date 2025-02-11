@@ -73,7 +73,7 @@ __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConf
 		if (config.renderHardShadows) {
 			Hit shadowHit;
 			bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-			return col * !shadowTrace;
+			col = shadowTrace ? col * config.shadowIntensity : col;
 		}
 
 		return col;
@@ -101,7 +101,7 @@ __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfi
 		if (config.renderHardShadows) {
 			Hit shadowHit;
 			bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-			return col * !shadowTrace;
+			col = shadowTrace ? col * config.shadowIntensity : col;
 		}
 
 		return col;
@@ -129,7 +129,7 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 			if (config.renderHardShadows) {
 				Hit shadowHit;
 				bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-				col = col * !shadowTrace;
+				col = shadowTrace ? col * config.shadowIntensity : col;
 			}
 		}
 
@@ -146,9 +146,23 @@ __global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scen
 	int pixelIndex = y * width + x;
 	if (x >= width || y >= height) return;
 
-	vec3 cameraSpacePoint = scene.cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), width, height);
+	vec3 col;
 
-	vec3 col = rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config);
+	if (config.antiAliasing) {
+		vec3 total;
+		vec3 cameraSpacePoint;
+		for (float i = 0.25; i <= 0.75; i += 0.5) {
+			for (float j = 0.25; j <= 0.75; j += 0.5) {
+				cameraSpacePoint = scene.cam.rasterToCameraSpace(float(x + i), float(y + j), width, height);
+				total += rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config);
+			}
+		}
+		col = total / 4;
+	}
+	else {
+		vec3 cameraSpacePoint = scene.cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), width, height);
+		col = rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config);
+	}
 
 	framebuffer[pixelIndex * 3 + 0] = min(col.x(), 1.0f) * 255;
 	framebuffer[pixelIndex * 3 + 1] = min(col.y(), 1.0f) * 255;
