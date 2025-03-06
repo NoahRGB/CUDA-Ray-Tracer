@@ -3,10 +3,12 @@
 #include "Camera.h"
 
 #include <stdio.h>
+#include <math.h>
 
 #include <device_launch_parameters.h>
+#include <curand_kernel.h>
 
-__device__ vec3 lighting(CUDAMaterial mat, vec3 lightPos, vec3 lightIntensity, vec3 point, vec3 eye, vec3 normal, SceneConfig& config) {
+__device__ vec3 lighting(Material mat, vec3 lightPos, vec3 lightIntensity, vec3 point, vec3 eye, vec3 normal, SceneConfig& config) {
 	vec3 colour;
 	vec3 L = normalise(lightPos - point);
 	
@@ -44,10 +46,12 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 					continue;
 				}
 
+				if (rayType == ReflectRay && objects[i].debug) continue;
+
 				if (t0 < hit.t) {
 					vec3 hitPoint = origin + t0 * dir;
 					vec3 normal = objects[i].normalAt(hitPoint);
-					hit = { t0, objects[i].mat, hitPoint, normal, objects[i].position, objects[i].objectType, objects[i].debug };
+					hit = { t0, objects[i].mat, hitPoint, normal, objects[i].position, objects[i].objectType, objects[i].objectName, objects[i].debug };
 				}
 			}
 		}
@@ -62,12 +66,14 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 }
 
 __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, vec3& ignore, int depth = 1) {
-	Hit sphereHit, planeHit, closestHit;
-	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit, ignore);
-	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit, ignore);
-	closestHit = (sphereHit.t < planeHit.t) ? sphereHit : planeHit;
+	Hit sphereHit, planeHit, boxHit, closestHit;
+	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, sphereHit);
+	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, planeHit);
+	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, ReflectRay, boxHit);
+	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
 
-	if (sphereTrace || planeTrace) {
+
+	if (sphereTrace || planeTrace || boxTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (config.renderHardShadows) {
@@ -82,20 +88,26 @@ __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConf
 	return config.backgroundCol;
 }
 
-
 __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, vec3& ignore, int depth = 1) {
-	Hit sphereHit, planeHit, closestHit;
-	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit, ignore);
-	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit, ignore);
-	closestHit = (sphereHit.t < planeHit.t) ? sphereHit : planeHit;
+	Hit sphereHit, planeHit, boxHit, closestHit;
+	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, sphereHit);
+	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, planeHit);
+	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, ReflectRay, boxHit);
+	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
 
-	if (sphereTrace || planeTrace) {
+
+	if (sphereTrace || planeTrace || boxTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (config.reflections && closestHit.objectType == Reflect && depth <= config.maxDepth) {
-			vec3 r = normalise(lightingReflect(dir, closestHit.normal));
+			vec3 r = normalise(reflect(dir, closestHit.normal));
 			vec3 reflectionCol = reflectionCast2(closestHit.hitPoint + closestHit.normal * config.shadowBias, r, scene, config, closestHit.objectPos, depth++);
-			col += config.reflectionStrength * reflectionCol;
+			if (closestHit.objectName == ObjectName::Plane_t) {
+				col += config.planeReflectionStrength * reflectionCol;
+			}
+			else if (closestHit.objectName == ObjectName::Sphere_t) {
+				col += config.sphereReflectionStrength * reflectionCol;
+			}
 		}
 
 		if (config.renderHardShadows) {
@@ -110,20 +122,31 @@ __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfi
 	return config.backgroundCol;
 }
 
-__device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config) {
-	Hit sphereHit, planeHit, closestHit;
+__device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, curandState randState) {
+	Hit sphereHit, planeHit, boxHit, closestHit;
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit);
-	closestHit = (sphereHit.t < planeHit.t) ? sphereHit : planeHit;
+	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, boxHit);
+	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
 
-	if (sphereTrace || planeTrace) {
+
+	if (sphereTrace || planeTrace || boxTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (!closestHit.debug) {
 			if (config.reflections && closestHit.objectType == Reflect) {
-				vec3 r = normalise(lightingReflect(dir, closestHit.normal));
+				vec3 r = normalise(reflect(dir, closestHit.normal));
 				vec3 reflectionCol = reflectionCast(closestHit.hitPoint + closestHit.normal * config.shadowBias, r, scene, config, closestHit.objectPos);
-				col += config.reflectionStrength * reflectionCol;
+				
+				if (closestHit.objectName == ObjectName::Plane_t) {
+					col += config.planeReflectionStrength * reflectionCol;
+				}
+				else if (closestHit.objectName == ObjectName::Sphere_t) {
+					col += config.sphereReflectionStrength * reflectionCol;
+				}
+				else if (closestHit.objectName == ObjectName::Box_t) {
+					col += config.boxReflectionStrength * reflectionCol;
+				}
 			}
 
 			if (config.renderHardShadows) {
@@ -131,6 +154,27 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 				bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
 				col = shadowTrace ? col * config.shadowIntensity : col;
 			}
+
+			if (config.renderSoftShadows) {
+				int hits = 0;
+				int r = config.softShadowRadius;
+
+				float t = curand_normal(&randState) * (r / config.dampning);
+			
+				float splitTheta = 180 / config.softShadowNum, splitPhi = 360 / config.softShadowNum;
+
+				for (int i = 0; i < config.softShadowNum; i++) {
+					float theta = i * splitTheta;
+					float phi = i * splitPhi;
+					vec3 lightPoint = scene.lights[0].position + vec3(r * sin(theta) * cos(theta) + t, r * sin(theta) * sin(phi) + t, r * cos(theta) + t);
+					Hit hit;
+					hits += traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
+
+				}
+
+
+				col = col * (1 - ((float)hits / config.softShadowNum));
+			}
 		}
 
 		return col;
@@ -140,11 +184,14 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 }
 
 
-__global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scene, SceneConfig config) {
+__global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scene, SceneConfig config, curandState* randStates) {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 	int pixelIndex = y * width + x;
 	if (x >= width || y >= height) return;
+
+	int id = threadIdx.x + blockIdx.x * blockDim.x;
+	curandState state = randStates[id];
 
 	vec3 col;
 
@@ -154,17 +201,79 @@ __global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scen
 		for (float i = 0.25; i <= 0.75; i += 0.5) {
 			for (float j = 0.25; j <= 0.75; j += 0.5) {
 				cameraSpacePoint = scene.cam.rasterToCameraSpace(float(x + i), float(y + j), width, height);
-				total += rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config);
+				total += rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config, state);
 			}
 		}
 		col = total / 4;
 	}
 	else {
 		vec3 cameraSpacePoint = scene.cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), width, height);
-		col = rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config);
+		col = rayCast(scene.cam.getPosition(), normalise(cameraSpacePoint), scene, config, state);
 	}
 
 	framebuffer[pixelIndex * 3 + 0] = min(col.x(), 1.0f) * 255;
 	framebuffer[pixelIndex * 3 + 1] = min(col.y(), 1.0f) * 255;
 	framebuffer[pixelIndex * 3 + 2] = min(col.z(), 1.0f) * 255;
 }
+
+__global__ void setupCurand(curandState* randStates) {
+	int id = threadIdx.x + blockIdx.x * blockDim.x;
+	curand_init(1, id, 0, &randStates[id]);
+}
+
+
+
+
+
+
+//vec3 origin = scene.cam.getPosition();
+//vec3 dir = normalise(scene.cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), width, height));
+//
+//vec3 v0 = vec3(0.0, 0.0, 0.0);
+//vec3 v1 = vec3(50.0, 0.0, 0.0);
+//vec3 v2 = vec3(50.0, 0.0, -50.0);
+//
+//vec3 AB = v1 - v0;
+//vec3 AC = v2 - v0;
+//vec3 N = cross(AB, AC);
+//
+//float rayNormalAngle = dot(N, dir);
+//if (abs(rayNormalAngle) < 0.001) {
+//	col = config.backgroundCol;
+//}
+//else {
+//	float d = -dot(N, v0);
+//	float t = -(dot(N, origin) + d) / rayNormalAngle;
+//	if (t < 0) {
+//		col = config.backgroundCol;
+//	}
+//	else {
+//		vec3 p = origin + dir * t;
+//		vec3 Ne;
+//		vec3 v0p = p - v0;
+//		Ne = cross(AB, v0p);
+//		if (dot(N, Ne) < 0) {
+//			col = config.backgroundCol;
+//		}
+//		else {
+//			vec3 CB = v2 - v1;
+//			vec3 v1p = p - v1;
+//			Ne = cross(CB, v1p);
+//			if (dot(N, Ne) < 0) {
+//				col = config.backgroundCol;
+//			}
+//			else {
+//				vec3 CA = v0 - v2;
+//				vec3 v2p = p - v2;
+//				Ne = cross(CA, v2p);
+//				if (dot(N, Ne) < 0) {
+//					col = config.backgroundCol;
+//				}
+//				else {
+//					col = vec3(1.0, 0.0, 0.0);
+//				}
+//			}
+//		}
+//
+//	}
+//}

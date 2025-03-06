@@ -3,12 +3,14 @@
 Plane::Plane() {
 
 }
-Plane::Plane(vec3 p, vec3 n, CUDAMaterial mat, bool debug, ObjectType objectType) {
+
+Plane::Plane(vec3 p, vec3 n, Material mat, bool debug, ObjectType objectType) {
 	position = p;
 	this->mat = mat;
 	this->n = n;
 	this->debug = false;
 	this->objectType = objectType;
+	objectName = Plane_t;
 }
 
 __host__ __device__ bool Plane::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {
@@ -20,5 +22,5 @@ __host__ __device__ bool Plane::hit(vec3 rayOrigin, vec3 rayDir, float& t0, floa
 }
 
 __host__ __device__ vec3 Plane::normalAt(vec3 point) {
-	return n;
+	return -n;
 }

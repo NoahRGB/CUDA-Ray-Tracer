@@ -6,6 +6,7 @@
 class vec3 {
 
 public:
+	float nums[3];
 	__host__ __device__ vec3() { nums[0] = 0; nums[1] = 0; nums[2] = 0; }
 	__host__ __device__ vec3(float x, float y, float z) { nums[0] = x; nums[1] = y; nums[2] = z; }
 
@@ -29,7 +30,7 @@ public:
 	__host__ __device__ inline bool operator==(const vec3& v2);
 
 private:
-	float nums[3];
+
 
 };
 
@@ -72,6 +73,10 @@ __host__ __device__ inline vec3 operator+(const vec3& v1, float n) {
 
 __host__ __device__ inline vec3 operator-(const vec3& v1, const vec3& v2) {
 	return vec3(v1[0] - v2[0], v1[1] - v2[1], v1[2] - v2[2]);
+}
+
+__host__ __device__ inline vec3 operator-(const vec3& v1, float n) {
+	return vec3(v1[0] - n, v1[1] - n, v1[2] - n);
 }
 
 __host__ __device__ inline vec3 operator*(const vec3& v1, const vec3& v2) {

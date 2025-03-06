@@ -16,8 +16,9 @@
     <None Include="vertShader.vert" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="CUDASphere.cpp" />
+    <CudaCompile Include="Sphere.cpp" />
     <CudaCompile Include="Camera.cpp" />
+    <CudaCompile Include="Box.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -35,8 +36,9 @@
     <CudaCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="CUDASphere.h" />
+    <CudaCompile Include="Sphere.h" />
     <CudaCompile Include="Camera.h" />
+    <CudaCompile Include="Box.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_impl_glfw.h" />
@@ -52,7 +54,6 @@
     <CudaCompile Include="Object.h" />
     <CudaCompile Include="Plane.h" />
     <ClInclude Include="Shader.h" />
-    <ClInclude Include="Sphere.h" />
     <ClInclude Include="Square.h" />
     <CudaCompile Include="utils.h" />
     <ClInclude Include="vec3.h" />

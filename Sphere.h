@@ -1,27 +1,22 @@
-#define GLM_FORCE_CUDA
 #pragma once
 
-#include "Object.h"
+#include "vec3.h"
 #include "utils.h"
-
-#include "glm\glm.hpp"
+#include "Object.h"
 
 class Sphere : public Object {
 private:
-	Material mat;
-	glm::vec3 center;
-	float radius;
+
 
 public:
-	Sphere() {}
-	Sphere(glm::vec3 center, float radius, glm::vec3 matCol, float matAmbient, float matDiffuse, float matSpecular, float matShininess);
-	Sphere(glm::vec3 center, float radius, Material mat);
-	bool hit(glm::vec3 rayOrigin, glm::vec3 rayDir, float& t0, float& t1);
+	Sphere();
+	Sphere(vec3 center, float radius, Material mat, bool debug = false, ObjectType objectType = Diffuse);
 
-	glm::vec3 getPosition() { return center; }
-	Material getMaterial() { return mat; }
-	glm::vec3 getNormal(glm::vec3 point);
+	__host__ __device__ bool hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1);
 
-	void move();
+	float radius;
+
+	__host__ __device__ vec3 normalAt(vec3 point);
+
 };
 

@@ -1,12 +1,12 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
   <ItemGroup>
-    <CudaCompile Include="CUDASphere.cpp" />
+    <CudaCompile Include="Sphere.cpp" />
     <CudaCompile Include="Camera.cpp" />
     <CudaCompile Include="RayTracer.cpp" />
     <CudaCompile Include="utils.cpp" />
     <CudaCompile Include="Window.cpp" />
-    <CudaCompile Include="CUDASphere.h" />
+    <CudaCompile Include="Sphere.h" />
     <CudaCompile Include="Camera.h" />
     <CudaCompile Include="RayTracer.h" />
     <CudaCompile Include="Object.h" />
@@ -14,6 +14,8 @@
     <CudaCompile Include="kernels.cu" />
     <CudaCompile Include="Plane.cpp" />
     <CudaCompile Include="Plane.h" />
+    <CudaCompile Include="Box.cpp" />
+    <CudaCompile Include="Box.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="main.cpp" />
@@ -47,7 +49,6 @@
   <ItemGroup>
     <ClInclude Include="kernels.h" />
     <ClInclude Include="Shader.h" />
-    <ClInclude Include="Sphere.h" />
     <ClInclude Include="Square.h" />
     <ClInclude Include="vec3.h" />
     <ClInclude Include="Window.h" />

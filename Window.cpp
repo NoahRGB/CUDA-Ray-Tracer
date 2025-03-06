@@ -2,7 +2,7 @@
 #include "RayTracer.h"
 #include "vec3.h"
 #include "kernels.h"
-#include "CUDASphere.h"
+#include "Sphere.h"
 #include "Camera.h"
 #include "utils.h"
 
@@ -163,35 +163,78 @@ void Window::run() {
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
 		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
-		ImGui::SeparatorText("Lighting");
-		ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
-		ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
-		ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
-		ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
-		ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
-		ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
-		ImGui::SliderFloat("Reflection strength", &rayTracer.config.reflectionStrength, 0.0, 1.0);
-		ImGui::SliderFloat("Shadow intensity", &rayTracer.config.shadowIntensity, 0.0, 1.0);
-
-		ImGui::SeparatorText("Create sphere");
-		static float posX = 0.0, posY = 0.0, posZ = 0.0, radius = 20.0;
-		static float r = 1.0, g = 0.0,  b = 0.0;
-		static float ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
-		static bool reflective = false;
-		ImGui::InputFloat("PosX", &posX);
-		ImGui::InputFloat("PosY", &posY);
-		ImGui::InputFloat("PosZ", &posZ);
-		ImGui::InputFloat("Radius", &radius);
-		ImGui::InputFloat("Red", &r);
-		ImGui::InputFloat("Green", &g);
-		ImGui::InputFloat("Blue", &b);
-		ImGui::InputFloat("Ambient", &ambient);
-		ImGui::InputFloat("Diffuse", &diffuse);
-		ImGui::InputFloat("Specular", &specular);
-		ImGui::InputFloat("Shininess", &shininess);
-		ImGui::Checkbox("Reflective?", &reflective);
-		if (ImGui::Button("Create Sphere")) {
-			rayTracer.addSphere(vec3(posX, posY, posZ), radius, { vec3(r, g, b), ambient, diffuse, specular, shininess }, reflective ? Reflect : Diffuse);
+		ImGui::Dummy(ImVec2(0.0f, 20.0f));
+		if (ImGui::CollapsingHeader("Lighting options")) {
+			ImGui::SeparatorText("Lighting");
+			ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
+			ImGui::Checkbox("Soft Shadows", &rayTracer.config.renderSoftShadows);
+			ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
+			ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
+			ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
+			ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
+			ImGui::SliderInt("Soft shadow radius", &rayTracer.config.softShadowRadius, 1, 15);
+			ImGui::SliderInt("Soft shadow casts", &rayTracer.config.softShadowNum, 1, 50);
+			ImGui::SliderInt("Soft shadow dampning", &rayTracer.config.dampning, 1, 20);
+			ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
+			ImGui::SliderFloat("Sphere Reflection strength", &rayTracer.config.sphereReflectionStrength, 0.0, 1.0);
+			ImGui::SliderFloat("Plane Reflection strength", &rayTracer.config.planeReflectionStrength, 0.0, 1.0);
+			ImGui::SliderFloat("Box Reflection strength", &rayTracer.config.boxReflectionStrength, 0.0, 1.0);
+			ImGui::SliderFloat("Shadow intensity", &rayTracer.config.shadowIntensity, 0.0, 1.0);
+		}
+		ImGui::Dummy(ImVec2(0.0f, 20.0f));
+		if (ImGui::CollapsingHeader("Create sphere")) {
+			ImGui::SeparatorText("Create sphere");
+			static vec3 pos, rgb(1.0, 0.0, 0.0);
+			static float radius = 20.0;
+			static float ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
+			static bool reflective = false;
+			ImGui::InputFloat3("Pos", pos.nums);
+			ImGui::InputFloat("Radius", &radius);
+			ImGui::InputFloat3("RGB", rgb.nums);
+			ImGui::InputFloat("Ambient", &ambient);
+			ImGui::InputFloat("Diffuse", &diffuse);
+			ImGui::InputFloat("Specular", &specular);
+			ImGui::InputFloat("Shininess", &shininess);
+			ImGui::Checkbox("Reflective?", &reflective);
+			if (ImGui::Button("Create Sphere")) {
+				rayTracer.addSphere(pos, radius, { rgb, ambient, diffuse, specular, shininess }, reflective ? Reflect : Diffuse);
+			}
+		}
+		ImGui::Dummy(ImVec2(0.0f, 20.0f));
+		if (ImGui::CollapsingHeader("Create plane")) {
+			ImGui::SeparatorText("Create plane");
+			static vec3 pos, normal, rgb(1.0, 0.0, 0.0);
+			static float ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
+			static bool reflective = false;
+			ImGui::InputFloat3("Pos", pos.nums);
+			ImGui::InputFloat3("RGB", rgb.nums);
+			ImGui::InputFloat3("Direction", normal.nums);
+			ImGui::InputFloat("Ambient", &ambient);
+			ImGui::InputFloat("Diffuse", &diffuse);
+			ImGui::InputFloat("Specular", &specular);
+			ImGui::InputFloat("Shininess", &shininess);
+			ImGui::Checkbox("Reflective?", &reflective);
+			if (ImGui::Button("Create Plane")) {
+				rayTracer.addPlane(pos, normal, { rgb, ambient, diffuse, specular, shininess}, reflective ? Reflect : Diffuse);
+			}
+		}
+		ImGui::Dummy(ImVec2(0.0f, 20.0f));
+		if (ImGui::CollapsingHeader("Create box")) {
+			ImGui::SeparatorText("Create box");
+			static vec3 pos, rgb(1.0, 0.0, 0.0);
+			static float size = 10.0, ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
+			static bool reflective = false;
+			ImGui::InputFloat3("Pos", pos.nums);
+			ImGui::InputFloat("Size", &size);
+			ImGui::InputFloat3("RGB", rgb.nums);
+			ImGui::InputFloat("Ambient", &ambient);
+			ImGui::InputFloat("Diffuse", &diffuse);
+			ImGui::InputFloat("Specular", &specular);
+			ImGui::InputFloat("Shininess", &shininess);
+			ImGui::Checkbox("Reflective?", &reflective);
+			if (ImGui::Button("Create Box")) {
+				rayTracer.addBox(pos, size, { rgb, ambient, diffuse, specular, shininess }, reflective ? Reflect : Diffuse);
+			}
 		}
 
 		ImGui::End();
@@ -255,6 +298,7 @@ void Window::display() {
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 	rayTracer.launchKernel();
+
 	square.setTextureToPixels(rayTracer.framebuffer);
 	square.render();
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include "Object.h"
+#include "utils.h"
 
 class Plane : public Object {
 private:
@@ -9,7 +10,7 @@ private:
 
 public:
 	Plane();
-	Plane(vec3 p, vec3 n, CUDAMaterial mat, bool debug = false, ObjectType objectType = Diffuse);
+	Plane(vec3 p, vec3 n, Material mat, bool debug = false, ObjectType objectType = Diffuse);
 
 	vec3 n;
 
