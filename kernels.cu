@@ -8,9 +8,20 @@
 #include <device_launch_parameters.h>
 #include <curand_kernel.h>
 
+__device__ float wangHash(unsigned int seed) {
+	seed = (seed ^ 61) ^ (seed >> 16);
+	seed *= 9;
+	seed = seed ^ (seed >> 4);
+	seed *= 0x27d4eb2d;
+	seed = seed ^ (seed >> 15);
+	return float(seed) / 4294967296.0f;
+}
+
 __device__ vec3 lighting(Material mat, vec3 lightPos, vec3 lightIntensity, vec3 point, vec3 eye, vec3 normal, SceneConfig& config) {
 	vec3 colour;
 	vec3 L = normalise(lightPos - point);
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
 	
 	// ambient
 	if (config.ambientLighting) {
@@ -25,10 +36,31 @@ __device__ vec3 lighting(Material mat, vec3 lightPos, vec3 lightIntensity, vec3 
 
 	// specular
 	if (config.specularLighting) {
-		vec3 v = normalise(eye);
-		vec3 r = normalise(-reflect(L, normal));
-		float RdotV = max(dot(r, v), 0.0f);
-		colour += mat.specular * lightIntensity * pow(RdotV, mat.shininess);
+		if (config.areaLightSpecularEffect) {
+			for (int i = 0; i < config.softShadowNum; i++) {
+
+				unsigned int seed = (x * 1000 + y) * 1973 + i * 9277;
+				float radius = config.softShadowRadius;
+				float theta = 2 * 3.141592654f * wangHash(seed);
+				float phi = acos(2 * wangHash(seed * 16807) - 1);
+				vec3 pointOnSphere = vec3(radius * sin(phi) * cos(theta), radius * sin(phi) * sin(theta), radius * cos(phi));
+				vec3 L = normalise((lightPos + pointOnSphere) - point);
+
+				vec3 v = normalise(eye);
+				vec3 r = normalise(-reflect(L, normal));
+				float RdotV = max(dot(r, v), 0.0f);
+				colour += mat.specular * lightIntensity * pow(RdotV, mat.shininess);
+
+			}
+		}
+		else {
+			vec3 v = normalise(eye);
+			vec3 r = normalise(-reflect(L, normal));
+			float RdotV = max(dot(r, v), 0.0f);
+			colour += mat.specular * lightIntensity * pow(RdotV, mat.shininess);
+		}
+
+
 	}
 
 	return colour;
@@ -129,6 +161,8 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, boxHit);
 	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
 
+	int x = blockIdx.x * blockDim.x + threadIdx.x;
+	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if (sphereTrace || planeTrace || boxTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
@@ -151,28 +185,29 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 
 			if (config.renderHardShadows) {
 				Hit shadowHit;
-				bool shadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-				col = shadowTrace ? col * config.shadowIntensity : col;
+				bool sphereShadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
+				bool boxShadowTrace = traceRay(scene.boxes, scene.boxCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
+				col = (sphereShadowTrace || boxShadowTrace) ? col * config.shadowIntensity : col;
 			}
 
 			if (config.renderSoftShadows) {
 				int hits = 0;
-				int r = config.softShadowRadius;
-
-				float t = curand_normal(&randState) * (r / config.dampning);
-			
-				float splitTheta = 180 / config.softShadowNum, splitPhi = 360 / config.softShadowNum;
-
 				for (int i = 0; i < config.softShadowNum; i++) {
-					float theta = i * splitTheta;
-					float phi = i * splitPhi;
-					vec3 lightPoint = scene.lights[0].position + vec3(r * sin(theta) * cos(theta) + t, r * sin(theta) * sin(phi) + t, r * cos(theta) + t);
+					
+					// generate random points on a unit sphere
+					unsigned int seed = (x * 1000 + y) * 1973 + i * 9277;
+					float r = config.softShadowRadius;
+					float theta = 2 * 3.141592654f * wangHash(seed);
+					float phi = acos(2 * wangHash(seed * 16807) - 1);
+					vec3 pointOnSphere = vec3(r * sin(phi) * cos(theta), r * sin(phi) * sin(theta), r * cos(phi));
+
+					// add random points to the light position and test for collision
+					vec3 lightPoint = scene.lights[0].position + pointOnSphere;
 					Hit hit;
 					hits += traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
+					hits += traceRay(scene.boxes, scene.boxCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
 
 				}
-
-
 				col = col * (1 - ((float)hits / config.softShadowNum));
 			}
 		}
@@ -180,9 +215,8 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 		return col;
 	}
 
-	return config.backgroundCol;
+	return vec3(0.1, 0.1, 0.1) * (float)config.backgroundBrightness;
 }
-
 
 __global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scene, SceneConfig config, curandState* randStates) {
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
@@ -218,7 +252,7 @@ __global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scen
 
 __global__ void setupCurand(curandState* randStates) {
 	int id = threadIdx.x + blockIdx.x * blockDim.x;
-	curand_init(1, id, 0, &randStates[id]);
+	curand_init(1337, id, 0, &randStates[id]);
 }
 
 

@@ -1,6 +1,7 @@
 #pragma once
 
 #include <vector>
+#include <random>
 
 #include <cuda_runtime.h>
 
@@ -56,9 +57,9 @@ __host__ __device__ struct Hit {
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);
 
 float getRand(int min, int max);
-bool loadOBJ(const char* path, std::vector<glm::vec3>& vertices, std::vector<glm::vec2>& uvs, std::vector<glm::vec3>& normals);
 
 __host__ __device__ vec3 abs(vec3& v);
+float getNormalRand(std::mt19937& gen, std::normal_distribution<float>& normal);
 
 template <typename T>
 __host__ __device__ T min(T x, T y) {

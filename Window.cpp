@@ -68,9 +68,10 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 			std::cout << win->rayTracer.scene.cam.getPosition().x() << " " << win->rayTracer.scene.cam.getPosition().y() << " " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
 		}
 
-		if (key == GLFW_KEY_P && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
 			if (!win->mouseEnabled) {
 				win->mouseEnabled = true;
+				win->firstMouse = true;
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 			}
 			else {
@@ -163,18 +164,20 @@ void Window::run() {
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
 		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
+		ImGui::SliderInt("Background brightness", &rayTracer.config.backgroundBrightness, 1, 10);
+		ImGui::SliderInt("Floor brightness", &rayTracer.config.floorBrightness, 1, 10);
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
 		if (ImGui::CollapsingHeader("Lighting options")) {
 			ImGui::SeparatorText("Lighting");
 			ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
 			ImGui::Checkbox("Soft Shadows", &rayTracer.config.renderSoftShadows);
+			ImGui::Checkbox("Area Light Specular", &rayTracer.config.areaLightSpecularEffect);
 			ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
 			ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
 			ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
 			ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
 			ImGui::SliderInt("Soft shadow radius", &rayTracer.config.softShadowRadius, 1, 15);
 			ImGui::SliderInt("Soft shadow casts", &rayTracer.config.softShadowNum, 1, 50);
-			ImGui::SliderInt("Soft shadow dampning", &rayTracer.config.dampning, 1, 20);
 			ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
 			ImGui::SliderFloat("Sphere Reflection strength", &rayTracer.config.sphereReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Plane Reflection strength", &rayTracer.config.planeReflectionStrength, 0.0, 1.0);
@@ -282,6 +285,9 @@ void Window::display() {
 		rayTracer.scene.lights[0].position[0] += 1;
 		rayTracer.scene.spheres[0].position[0] += 1;
 	}
+
+	rayTracer.scene.spheres[0].radius = rayTracer.config.softShadowRadius;
+	rayTracer.scene.planes[0].mat.colour = vec3(0.1, 0.1, 0.1) * (float)rayTracer.config.floorBrightness;
 
 	// ##### fps display #####
 

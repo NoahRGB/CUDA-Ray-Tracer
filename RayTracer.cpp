@@ -2,6 +2,7 @@
 #include "Object.h"
 #include "kernels.h"
 #include "Plane.h"
+#include "utils.h"
 
 #include <cuda_runtime.h>
 #include <device_launch_parameters.h>
@@ -15,12 +16,13 @@ RayTracer::RayTracer() {
 
 RayTracer::~RayTracer() {
 	cudaFree(framebuffer);
+	cudaFree(randStates);
+	cudaFree(&scene.cam);
+
 	cudaFree(scene.spheres);
 	cudaFree(scene.planes);
 	cudaFree(scene.boxes);
 	cudaFree(scene.lights);
-	cudaFree(randStates);
-	cudaFree(&scene.cam);
 }
 
 void RayTracer::init(int width, int height) {
@@ -61,11 +63,11 @@ void RayTracer::resize(int width, int height) {
 void RayTracer::initialiseScene() {
 	scene.spheres = new Sphere[scene.sphereCount];
 	cudaMallocManaged((void**)&scene.spheres, scene.sphereCount * sizeof(Sphere));
-	scene.spheres[0] = Sphere(vec3(0.0, -40.0, -50.0), 2.0, { vec3(0.0, 1.0, 0.0), 1.0, 0.0, 0.0, 200.0 }, true);
+	scene.spheres[0] = Sphere(vec3(0.0, -40.0, -50.0), 2.0, { vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, true);
 
 	scene.planes = new Plane[scene.planeCount];
 	cudaMallocManaged((void**)&scene.planes, scene.planeCount * sizeof(Plane));
-	scene.planes[0] = Plane(vec3(0.0, 20.0, 0.0), vec3(0.0, 1.0, 0.0), { vec3(0.4, 0.4, 0.4), 0.5, 0.5, 0.0, 200 }, false, Reflect);
+	scene.planes[0] = Plane(vec3(0.0, 20.0, 0.0), vec3(0.0, 1.0, 0.0), { vec3(0.1, 0.1, 0.1), 0.9, 0.5, 0.0, 200 }, false, Reflect);
 
 	scene.boxes = new Box[scene.boxCount];
 	cudaMallocManaged((void**)&scene.boxes, scene.boxCount * sizeof(Box));
@@ -73,19 +75,20 @@ void RayTracer::initialiseScene() {
 
 	scene.lights = new Light[scene.lightCount];
 	cudaMallocManaged((void**)&scene.lights, scene.lightCount * sizeof(Light));
-	scene.lights[0] = { { 0.0, -40.0, -50.0 }, vec3(1.0, 1.0, 1.0), vec3(0.0, 1.0, 0.0), 5, vec3(1.0, 0.0, 0.0), 2, 10 };
+	scene.lights[0] = { { 0.0, -40.0, -50.0 }, vec3(1.0, 1.0, 1.0), vec3(0.5, 0.0, 0.0), 4, vec3(0.0, 0.0, 0.5), 2, 8 };
+
 
 	cudaMallocManaged((void**)&framebuffer, 3 * width * height * sizeof(GLubyte));
 
+	cudaMallocManaged((void**)&scene.cam, sizeof(Camera));
+
 	cudaMallocManaged((void**)&randStates, dimBlock.x * dimBlock.y * dimGrid.x * dimGrid.y * sizeof(curandState));
-	
+
 	setupCurand<<<dimGrid, dimBlock>>>(randStates);
 	cudaError_t err = cudaGetLastError();
 	if (err != cudaSuccess) {
 		std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " << __FILE__ << ", line: " << __LINE__ << std::endl;
 	}
-
-	cudaMallocManaged((void**)&scene.cam, sizeof(Camera));
 
 	cudaDeviceSynchronize();
 }
@@ -111,7 +114,7 @@ void RayTracer::addPlane(vec3 pos, vec3 n, Material mat, ObjectType objectType) 
 	cudaFree(scene.planes);
 	cudaMallocManaged((void**)&scene.planes, scene.planeCount * sizeof(Plane));
 
-	// copy over old spheres
+	// copy over old planes
 	for (int i = 0; i < scene.planeCount - 1; i++) {
 		scene.planes[i] = oldPlanes[i];
 	}
@@ -126,7 +129,7 @@ void RayTracer::addBox(vec3 pos, float size, Material mat, ObjectType objectType
 	cudaFree(scene.boxes);
 	cudaMallocManaged((void**)&scene.boxes, scene.boxCount * sizeof(Box));
 
-	// copy over old spheres
+	// copy over old boxes
 	for (int i = 0; i < scene.boxCount - 1; i++) {
 		scene.boxes[i] = oldBoxes[i];
 	}
