@@ -22,6 +22,9 @@ RayTracer::~RayTracer() {
 	cudaFree(scene.spheres);
 	cudaFree(scene.planes);
 	cudaFree(scene.boxes);
+	cudaFree(scene.triangles);
+	cudaFree(scene.models[0].vertices);
+	cudaFree(scene.models);
 	cudaFree(scene.lights);
 }
 
@@ -29,10 +32,12 @@ void RayTracer::init(int width, int height) {
 	this->width = width;
 	this->height = height;
 
-	scene.cam = Camera(vec3(0, 0, -0), 90.0, width / (float)height, 0.0, -90.0);
+	scene.cam = Camera(vec3(0.0, 0.0, 0.0), 90.0, width / (float)height);
 	scene.sphereCount = 1;
 	scene.planeCount = 1;
 	scene.boxCount = 0;
+	scene.triangleCount = 0;
+	scene.modelCount = 1;
 	scene.lightCount = 1;
 
 	dimBlock = dim3(20, 20);
@@ -72,6 +77,14 @@ void RayTracer::initialiseScene() {
 	scene.boxes = new Box[scene.boxCount];
 	cudaMallocManaged((void**)&scene.boxes, scene.boxCount * sizeof(Box));
 	//scene.boxes[0] = Box(vec3(0.0, 0.0, 0.0), 10.0, { vec3(0.0, 1.0, 0.0), 0.1, 0.8, 0.0, 200 }, false, Diffuse);
+
+	scene.triangles = new Triangle[scene.triangleCount];
+	cudaMallocManaged((void**)&scene.triangles, scene.triangleCount * sizeof(Triangle));
+	//scene.triangles[0] = Triangle(vec3(0.0, -20.0, 0.0), vec3(0.0, -80.0, 0.0), vec3(50.0, -20.0, 0.0), { vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 });
+
+	scene.models = new Model[scene.modelCount];
+	cudaMallocManaged((void**)&scene.models, scene.modelCount * sizeof(Model));
+	scene.models[0] = Model(vec3(0.0, -50.0, 0.0), "WoodLog.obj", { vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 });
 
 	scene.lights = new Light[scene.lightCount];
 	cudaMallocManaged((void**)&scene.lights, scene.lightCount * sizeof(Light));

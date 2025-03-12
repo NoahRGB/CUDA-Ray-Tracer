@@ -4,6 +4,8 @@
 #include "Camera.h"
 #include "Sphere.h"
 #include "Plane.h"
+#include "Triangle.h"
+#include "Model.h"
 #include "Box.h"
 
 #include <gl/glew.h>
@@ -22,8 +24,14 @@ __host__ __device__ struct Scene {
 	Box* boxes;
 	int boxCount;
 
+	Triangle* triangles;
+	int triangleCount;
+
 	Light* lights;
 	int lightCount = 1;
+
+	Model* models;
+	int modelCount = 1;
 
 	Camera cam;
 };

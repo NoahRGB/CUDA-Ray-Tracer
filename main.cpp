@@ -2,6 +2,7 @@
 #include <iostream>
 
 #include "Window.h"
+#include "OBJ_Loader.h"
 
 int main() {
 	
@@ -13,6 +14,6 @@ int main() {
 	else {
 		std::cout << "Failed to initialise window" << std::endl;
 	}
-	
+
 	return 0;
 }

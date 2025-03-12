@@ -11,7 +11,7 @@
 #include "vec3.h"
 
 __host__ __device__ enum ObjectName {
-	Sphere_t, Plane_t, Box_t
+	Sphere_t, Plane_t, Box_t, Triangle_t, Model_t
 };
 
 __host__ __device__ enum ObjectType {
@@ -55,24 +55,21 @@ __host__ __device__ struct Hit {
 };
 
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);
-
-float getRand(int min, int max);
-
 __host__ __device__ vec3 abs(vec3& v);
+float getRand(int min, int max);
 float getNormalRand(std::mt19937& gen, std::normal_distribution<float>& normal);
 
-template <typename T>
-__host__ __device__ T min(T x, T y) {
+template <typename T> __host__ __device__ T min(T x, T y) {
 	return (x < y) ? x : y;
 }
 
-template <typename T>
-__host__ __device__ T max(T x, T y) {
+
+template <typename T> __host__ __device__ T max(T x, T y) {
 	return (x > y) ? x : y;
 }
 
-template <typename T>
-__host__ __device__ void swap(T& a, T& b) {
+
+template <typename T> __host__ __device__ void swap(T& a, T& b) {
 	T temp = a;
 	a = b;
 	b = temp;

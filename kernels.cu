@@ -155,16 +155,17 @@ __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfi
 }
 
 __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, curandState randState) {
-	Hit sphereHit, planeHit, boxHit, closestHit;
-	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, sphereHit);
-	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, planeHit);
-	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, boxHit);
-	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
+	Hit closestHit;
+	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, closestHit);
+	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, closestHit);
+	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, closestHit);
+	bool triangleTrace = traceRay(scene.triangles, scene.triangleCount, origin, dir, PrimaryRay, closestHit);
+	bool modelTrace = traceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit);
 
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-	if (sphereTrace || planeTrace || boxTrace) {
+	if (sphereTrace || planeTrace || boxTrace || triangleTrace || modelTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (!closestHit.debug) {

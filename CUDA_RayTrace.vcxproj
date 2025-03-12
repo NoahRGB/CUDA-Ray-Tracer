@@ -16,6 +16,7 @@
     <None Include="vertShader.vert" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="Triangle.cpp" />
     <CudaCompile Include="Sphere.cpp" />
     <CudaCompile Include="Camera.cpp" />
     <CudaCompile Include="Box.cpp" />
@@ -30,6 +31,8 @@
     <ClCompile Include="main.cpp" />
     <CudaCompile Include="RayTracer.cpp" />
     <CudaCompile Include="Plane.cpp" />
+    <CudaCompile Include="Model.cpp" />
+    <ClCompile Include="OBJ_Loader.cpp" />
     <ClCompile Include="Shader.cpp" />
     <ClCompile Include="Square.cpp" />
     <CudaCompile Include="utils.cpp" />
@@ -53,9 +56,12 @@
     <CudaCompile Include="RayTracer.h" />
     <CudaCompile Include="Object.h" />
     <CudaCompile Include="Plane.h" />
+    <CudaCompile Include="Model.h" />
+    <ClInclude Include="OBJ_Loader.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="Square.h" />
     <CudaCompile Include="utils.h" />
+    <CudaCompile Include="Triangle.h" />
     <ClInclude Include="vec3.h" />
     <ClInclude Include="Window.h" />
   </ItemGroup>
