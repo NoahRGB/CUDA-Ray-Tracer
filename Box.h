@@ -7,8 +7,6 @@
 class Box : public Object {
 private:
 
-	vec3 min, max;
-
 
 public:
 	Box();
@@ -19,5 +17,6 @@ public:
 
 	__host__ __device__ vec3 normalAt(vec3 point);
 
+	vec3 min, max;
 };
 

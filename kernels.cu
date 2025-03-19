@@ -97,6 +97,37 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 	return false;
 }
 
+//__device__ bool traceRay2(Object* objects, int objectCount, vec3 origin, vec3 dir, RayType rayType, Hit& hit, vec3& ignore = vec3(-999, -999, -999)) {
+//	for (int i = 0; i < objectCount; i++) {
+//
+//		if (objects[i].position != ignore) {
+//			float t0, t1;
+//			if (objects[i].hit(origin, dir, t0, t1)) {
+//
+//				if (rayType == ShadowRay) {
+//					if (!objects[i].debug) return true;
+//					continue;
+//				}
+//
+//				if (rayType == ReflectRay && objects[i].debug) continue;
+//
+//				if (t0 < hit.t) {
+//					vec3 hitPoint = origin + t0 * dir;
+//					vec3 normal = objects[i].normalAt(hitPoint);
+//					hit = { t0, objects[i].mat, hitPoint, normal, objects[i].position, objects[i].objectType, objects[i].objectName, objects[i].debug };
+//				}
+//			}
+//		}
+//	}
+//
+//	if (hit.t != 999) {
+//		hit.normal = normalise(hit.normal);
+//		return true;
+//	}
+//
+//	return false;
+//}
+
 __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, vec3& ignore, int depth = 1) {
 	Hit sphereHit, planeHit, boxHit, closestHit;
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, sphereHit);
@@ -158,7 +189,7 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 	Hit closestHit;
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, closestHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, closestHit);
-	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, closestHit);
+	bool boxTrace = config.renderBoxes ? traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, closestHit) : false;
 	bool triangleTrace = traceRay(scene.triangles, scene.triangleCount, origin, dir, PrimaryRay, closestHit);
 	bool modelTrace = traceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit);
 
@@ -166,9 +197,11 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
 	if (sphereTrace || planeTrace || boxTrace || triangleTrace || modelTrace) {
-		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
+		vec3 col;
 
 		if (!closestHit.debug) {
+			col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
+			
 			if (config.reflections && closestHit.objectType == Reflect) {
 				vec3 r = normalise(reflect(dir, closestHit.normal));
 				vec3 reflectionCol = reflectionCast(closestHit.hitPoint + closestHit.normal * config.shadowBias, r, scene, config, closestHit.objectPos);
@@ -211,6 +244,10 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 				}
 				col = col * (1 - ((float)hits / config.softShadowNum));
 			}
+		}
+		else {
+			// is a debug object so just colour it fully
+			col = vec3(closestHit.mat.colour.x(), closestHit.mat.colour.y(), closestHit.mat.colour.z());
 		}
 
 		return col;
@@ -255,60 +292,3 @@ __global__ void setupCurand(curandState* randStates) {
 	int id = threadIdx.x + blockIdx.x * blockDim.x;
 	curand_init(1337, id, 0, &randStates[id]);
 }
-
-
-
-
-
-
-//vec3 origin = scene.cam.getPosition();
-//vec3 dir = normalise(scene.cam.rasterToCameraSpace(float(x + 0.5), float(y + 0.5), width, height));
-//
-//vec3 v0 = vec3(0.0, 0.0, 0.0);
-//vec3 v1 = vec3(50.0, 0.0, 0.0);
-//vec3 v2 = vec3(50.0, 0.0, -50.0);
-//
-//vec3 AB = v1 - v0;
-//vec3 AC = v2 - v0;
-//vec3 N = cross(AB, AC);
-//
-//float rayNormalAngle = dot(N, dir);
-//if (abs(rayNormalAngle) < 0.001) {
-//	col = config.backgroundCol;
-//}
-//else {
-//	float d = -dot(N, v0);
-//	float t = -(dot(N, origin) + d) / rayNormalAngle;
-//	if (t < 0) {
-//		col = config.backgroundCol;
-//	}
-//	else {
-//		vec3 p = origin + dir * t;
-//		vec3 Ne;
-//		vec3 v0p = p - v0;
-//		Ne = cross(AB, v0p);
-//		if (dot(N, Ne) < 0) {
-//			col = config.backgroundCol;
-//		}
-//		else {
-//			vec3 CB = v2 - v1;
-//			vec3 v1p = p - v1;
-//			Ne = cross(CB, v1p);
-//			if (dot(N, Ne) < 0) {
-//				col = config.backgroundCol;
-//			}
-//			else {
-//				vec3 CA = v0 - v2;
-//				vec3 v2p = p - v2;
-//				Ne = cross(CA, v2p);
-//				if (dot(N, Ne) < 0) {
-//					col = config.backgroundCol;
-//				}
-//				else {
-//					col = vec3(1.0, 0.0, 0.0);
-//				}
-//			}
-//		}
-//
-//	}
-//}

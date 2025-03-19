@@ -50,6 +50,7 @@ __host__ __device__ struct SceneConfig {
 	float planeReflectionStrength = 0.5;
 	float boxReflectionStrength = 0.5;
 	float shadowIntensity = 0.5;
+	bool renderBoxes = false;
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
 	bool specularLighting = true;

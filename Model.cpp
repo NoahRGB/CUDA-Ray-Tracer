@@ -6,12 +6,14 @@ Model::Model() {
 
 }
 
-Model::Model(vec3 position, char* filename, Material mat, bool debug, ObjectType objectType) {
+Model::Model(vec3 position, int size, char* filename, Material mat, bool debug, ObjectType objectType) {
 	this->position = position;
+	this->size = size;
 	this->mat = mat;
 	this->debug = debug;
 	this->objectType = objectType;
 	objectName = Model_t;
+	bb = BoundingBox();
 
 	objl::Loader loader;
 	loader.LoadFile(filename);
@@ -22,10 +24,9 @@ Model::Model(vec3 position, char* filename, Material mat, bool debug, ObjectType
 
 	for (int i = 0; i < vertCount; i++) {
 		objl::Mesh mesh = loader.LoadedMeshes[0];
-		vertices[i] = vec3(mesh.Vertices[i].Position.X, mesh.Vertices[i].Position.Y, mesh.Vertices[i].Position.Z);
+		vertices[i] = vec3(mesh.Vertices[i].Position.X * (float)size, mesh.Vertices[i].Position.Y * (float)size, mesh.Vertices[i].Position.Z * (float)size);
+		bb.extendBy(position + vertices[i]);
 	}
-
-
 }
 
 __host__ __device__ bool Model::triangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec3 rayOrigin, vec3 rayDir, float& t) {
@@ -34,7 +35,7 @@ __host__ __device__ bool Model::triangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec
 	vec3 pvec = cross(rayDir, v0v2);
 	float det = dot(v0v1, pvec);
 
-	if (fabs(det) < 0.001) return false;
+	if (fabs(det) <= 0) return false;
 
 	float invDet = 1 / det;
 
@@ -52,9 +53,12 @@ __host__ __device__ bool Model::triangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec
 }
 
 __host__ __device__ bool Model::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {
-	for (int i = 0; i < vertCount - 3; i += 3) {
-		if (triangleIntersect(position + vertices[i] * 3, position + vertices[i + 1] * 3, position + vertices[i + 2] * 3, rayOrigin, rayDir, t0)) {
-			return true;
+
+	if (bb.hit(rayOrigin, rayDir, t0, t1)) {
+		for (int i = 0; i < vertCount - 3; i += 3) {
+			if (triangleIntersect(position + vertices[i], position + vertices[i + 1], position + vertices[i + 2], rayOrigin, rayDir, t0)) {
+				return true;
+			}
 		}
 	}
 

@@ -3,6 +3,7 @@
 
 #include "Object.h"
 #include "vec3.h"
+#include "BoundingBox.h"
 
 
 
@@ -14,7 +15,7 @@ private:
 
 public:
 	Model();
-	Model(vec3 position, char* filename, Material mat, bool debug = false, ObjectType objectType = Diffuse);
+	Model(vec3 position, int size, char* filename, Material mat, bool debug = false, ObjectType objectType = Diffuse);
 
 	__host__ __device__ bool hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1);
 
@@ -23,7 +24,7 @@ public:
 	vec3 position;
 	vec3* vertices;
 	int vertCount;
-	
-
+	BoundingBox bb;
+	int size;
 };
 

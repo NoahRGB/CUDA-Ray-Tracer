@@ -65,7 +65,7 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 		}
 
 		if (key == GLFW_KEY_V) {
-			std::cout << win->rayTracer.scene.cam.getPosition().x() << " " << win->rayTracer.scene.cam.getPosition().y() << " " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
+			std::cout << win->rayTracer.scene.cam.getPosition().x() << ", " << win->rayTracer.scene.cam.getPosition().y() << ", " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
 		}
 
 		if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
@@ -164,6 +164,7 @@ void Window::run() {
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
 		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
+		ImGui::Checkbox("Render boxes", &rayTracer.config.renderBoxes);
 		ImGui::SliderInt("Background brightness", &rayTracer.config.backgroundBrightness, 1, 10);
 		ImGui::SliderInt("Floor brightness", &rayTracer.config.floorBrightness, 1, 10);
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
