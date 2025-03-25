@@ -11,7 +11,7 @@
 #include "vec3.h"
 
 __host__ __device__ enum ObjectName {
-	Sphere_t, Plane_t, Box_t, Triangle_t, Model_t
+	Sphere_t, Plane_t, Box_t, Triangle_t, Model_t, AABB_t
 };
 
 __host__ __device__ enum ObjectType {
@@ -36,7 +36,8 @@ __host__ __device__ struct Light {
 };
 
 __host__ __device__ struct Material {
-	vec3 colour;
+	vec3 ambientColour;
+	vec3 diffuseColour;
 	float ambient;
 	float diffuse;
 	float specular;
@@ -54,10 +55,26 @@ __host__ __device__ struct Hit {
 	bool debug = false;
 };
 
+__host__ __device__ struct Vertex {
+	vec3 position;
+	vec3 textureCoords;
+	vec3 normal;
+	int materialIndex;
+};
+
+__host__ __device__ struct TextureMaterial {
+	char* name;
+	vec3 ambient;
+	vec3 diffuse;
+	vec3 specular;
+};
+
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);
 __host__ __device__ vec3 abs(vec3& v);
 float getRand(int min, int max);
 float getNormalRand(std::mt19937& gen, std::normal_distribution<float>& normal);
+
+vec3* generatePlaneSetNormals();
 
 template <typename T> __host__ __device__ T min(T x, T y) {
 	return (x < y) ? x : y;

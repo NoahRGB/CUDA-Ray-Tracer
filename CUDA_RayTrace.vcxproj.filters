@@ -14,14 +14,10 @@
     <CudaCompile Include="kernels.cu" />
     <CudaCompile Include="Plane.cpp" />
     <CudaCompile Include="Plane.h" />
-    <CudaCompile Include="Box.cpp" />
-    <CudaCompile Include="Box.h" />
     <CudaCompile Include="Triangle.cpp" />
     <CudaCompile Include="Triangle.h" />
     <CudaCompile Include="Model.h" />
     <CudaCompile Include="Model.cpp" />
-    <CudaCompile Include="BoundingBox.cpp" />
-    <CudaCompile Include="BoundingBox.h" />
     <CudaCompile Include="kernels.h" />
     <CudaCompile Include="main.cpp" />
     <CudaCompile Include="OBJ_Loader.cpp" />
@@ -32,6 +28,8 @@
     <CudaCompile Include="Square.h" />
     <CudaCompile Include="vec3.h" />
     <CudaCompile Include="Window.h" />
+    <CudaCompile Include="AABB.cpp" />
+    <CudaCompile Include="AABB.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp">

@@ -48,3 +48,15 @@ float getNormalRand(std::mt19937& gen, std::normal_distribution<float>& normal) 
 __host__ __device__ vec3 abs(vec3& v) {
 	return vec3(abs(v.x()), abs(v.y()), abs(v.z()));
 }
+
+vec3* generatePlaneSetNormals() {
+	vec3* planeSetNormals = new vec3[7];
+	planeSetNormals[0] = vec3(1.0, 0.0, 0.0);
+	planeSetNormals[1] = vec3(0.0, 1.0, 0.0);
+	planeSetNormals[2] = vec3(0.0, 0.0, 1.0);
+	planeSetNormals[3] = vec3(sqrtf(3) / 3.0, sqrtf(3) / 3.0, sqrtf(3) / 3.0);
+	planeSetNormals[4] = vec3(-sqrtf(3) / 3.0, sqrtf(3) / 3.0, sqrtf(3) / 3.0);
+	planeSetNormals[5] = vec3(-sqrtf(3) / 3.0, -sqrtf(3) / 3.0, sqrtf(3) / 3.0);
+	planeSetNormals[6] = vec3(sqrtf(3) / 3.0, -sqrtf(3) / 3.0, sqrtf(3) / 3.0);
+	return planeSetNormals;
+}

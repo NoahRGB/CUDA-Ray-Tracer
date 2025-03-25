@@ -4,8 +4,12 @@
 #include "Window.h"
 #include "OBJ_Loader.h"
 
+#include "utils.h"
+#include "Model.h"
+
+
 int main() {
-	
+
 	Window window(1000, 1000, "Ray Tracing");
 	
 	if (window.init() == 0) {

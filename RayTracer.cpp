@@ -21,7 +21,7 @@ RayTracer::~RayTracer() {
 
 	cudaFree(scene.spheres);
 	cudaFree(scene.planes);
-	cudaFree(scene.boxes);
+	cudaFree(scene.AABBs);
 	cudaFree(scene.triangles);
 	cudaFree(scene.models[0].vertices);
 	cudaFree(scene.models);
@@ -35,7 +35,7 @@ void RayTracer::init(int width, int height) {
 	scene.cam = Camera(vec3(-71.3978, -47.8406, -76.643), 90.0, width / (float)height, 68.7, 17.8);
 	scene.sphereCount = 1;
 	scene.planeCount = 1;
-	scene.boxCount = 0;
+	scene.AABBCount = 0;
 	scene.triangleCount = 0;
 	scene.modelCount = 1;
 	scene.lightCount = 1;
@@ -68,23 +68,23 @@ void RayTracer::resize(int width, int height) {
 void RayTracer::initialiseScene() {
 	scene.spheres = new Sphere[scene.sphereCount];
 	cudaMallocManaged((void**)&scene.spheres, scene.sphereCount * sizeof(Sphere));
-	scene.spheres[0] = Sphere(vec3(0.0, -40.0, -50.0), 2.0, { vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, true);
+	scene.spheres[0] = Sphere(vec3(0.0, -40.0, -50.0), 2.0, { vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, true);
 
 	scene.planes = new Plane[scene.planeCount];
 	cudaMallocManaged((void**)&scene.planes, scene.planeCount * sizeof(Plane));
-	scene.planes[0] = Plane(vec3(0.0, 20.0, 0.0), vec3(0.0, 1.0, 0.0), { vec3(0.1, 0.1, 0.1), 0.9, 0.5, 0.0, 200 }, false, Reflect);
+	scene.planes[0] = Plane(vec3(0.0, 20.0, 0.0), vec3(0.0, 1.0, 0.0), { vec3(0.1, 0.1, 0.1), vec3(0.1, 0.1, 0.1), 0.9, 0.5, 0.0, 200 }, false, Reflect);
 
-	scene.boxes = new Box[scene.boxCount];
-	cudaMallocManaged((void**)&scene.boxes, scene.boxCount * sizeof(Box));
-	//scene.boxes[0] = Box(vec3(0.0, 0.0, 0.0), 10.0, { vec3(0.0, 1.0, 0.0), 0.1, 0.8, 0.0, 200 }, true, Diffuse);
+	scene.AABBs = new AABB[scene.AABBCount];
+	cudaMallocManaged((void**)&scene.AABBs, scene.AABBCount * sizeof(AABB));
+	//scene.boxes[0] = Box(vec3(0.0, 0.0, 0.0), 10.0, { vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), 0.1, 0.8, 0.0, 200 }, true, Diffuse);
 
 	scene.triangles = new Triangle[scene.triangleCount];
 	cudaMallocManaged((void**)&scene.triangles, scene.triangleCount * sizeof(Triangle));
-	//scene.triangles[0] = Triangle(vec3(0.0, -20.0, 0.0), vec3(0.0, -80.0, 0.0), vec3(50.0, -20.0, 0.0), { vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 });
+	//scene.triangles[0] = Triangle(vec3(0.0, -20.0, 0.0), vec3(0.0, -80.0, 0.0), vec3(50.0, -20.0, 0.0), { vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 });
 
 	scene.models = new Model[scene.modelCount];
 	cudaMallocManaged((void**)&scene.models, scene.modelCount * sizeof(Model));
-	scene.models[0] = Model(vec3(0.0, -20.0, 0.0), 15, "WoodLog.obj", { vec3(1.0, 0.0, 0.0), 1.0, 0.0, 0.0, 200.0 }, true, Diffuse);
+	scene.models[0] = Model(vec3(0.0, -20.0, 0.0), 15, "log.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 0.0, 200.0 }, false, Diffuse);
 
 	scene.lights = new Light[scene.lightCount];
 	cudaMallocManaged((void**)&scene.lights, scene.lightCount * sizeof(Light));
@@ -135,19 +135,19 @@ void RayTracer::addPlane(vec3 pos, vec3 n, Material mat, ObjectType objectType) 
 	scene.planes[scene.planeCount - 1] = Plane(pos, n, mat, false, objectType);
 }
 
-void RayTracer::addBox(vec3 pos, float size, Material mat, ObjectType objectType) {
-	scene.boxCount++;
-	Box* oldBoxes = scene.boxes;
-	cudaFree(scene.boxes);
-	cudaMallocManaged((void**)&scene.boxes, scene.boxCount * sizeof(Box));
+void RayTracer::addAABB(vec3 pos, float size, Material mat, ObjectType objectType) {
+	scene.AABBCount++;
+	AABB* oldAABBs = scene.AABBs;
+	cudaFree(scene.AABBs);
+	cudaMallocManaged((void**)&scene.AABBs, scene.AABBCount * sizeof(AABB));
 
 	// copy over old boxes
-	for (int i = 0; i < scene.boxCount - 1; i++) {
-		scene.boxes[i] = oldBoxes[i];
+	for (int i = 0; i < scene.AABBCount - 1; i++) {
+		scene.AABBs[i] = oldAABBs[i];
 	}
 
 	// add new one on the end
-	scene.boxes[scene.boxCount - 1] = Box(pos, size, mat, false, objectType);
+	scene.AABBs[scene.AABBCount - 1] = AABB(pos, size, mat, false, objectType);
 }
 
 void RayTracer::launchKernel() {

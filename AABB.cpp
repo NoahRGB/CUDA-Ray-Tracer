@@ -1,28 +1,40 @@
-#include "Box.h"
+#include "AABB.h"
 
-Box::Box() {
-
+AABB::AABB() {
+	min = vec3(0.0, 0.0, 0.0);
+	max = vec3(0.0, 0.0, 0.0);
 }
 
-Box::Box(vec3 pos, float size, Material mat, bool debug, ObjectType objectType) {
+AABB::AABB(vec3 pos, float size, Material mat, bool debug, ObjectType objectType) {
 	this->min = pos - (size / 2);
 	this->max = pos + (size / 2);
 	this->mat = mat;
 	this->debug = debug;
 	this->objectType = objectType;
-	objectName = Box_t;
+	objectName = AABB_t;
 }
 
-Box::Box(vec3 min, vec3 max, Material mat, bool debug, ObjectType objectType) {
+AABB::AABB(vec3 min, vec3 max, Material mat, bool debug, ObjectType objectType) {
 	this->min = min;
 	this->max = max;
 	this->mat = mat;
 	this->debug = debug;
 	this->objectType = objectType;
-	objectName = Box_t;
+	objectName = AABB_t;
 }
 
-__host__ __device__ bool Box::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {
+__host__ __device__ void AABB::extendBy(vec3 point) {
+	if (point.x() < min.x()) min.nums[0] = point.x();
+	if (point.y() < min.y()) min.nums[1] = point.y();
+	if (point.z() < min.z()) min.nums[2] = point.z();
+
+	if (point.x() > max.x()) max.nums[0] = point.x();
+	if (point.y() > max.y()) max.nums[1] = point.y();
+	if (point.z() > max.z()) max.nums[2] = point.z();
+}
+
+
+__host__ __device__ bool AABB::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {
 	// get tmin_x and tmax_x and put them in the correct order
 	float tmin = (min.x() - rayOrigin.x()) / rayDir.x();
 	float tmax = (max.x() - rayOrigin.x()) / rayDir.x();
@@ -33,7 +45,7 @@ __host__ __device__ bool Box::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float&
 	float tmax_y = (max.y() - rayOrigin.y()) / rayDir.y();
 	if (tmin_y > tmax_y) swap(tmin_y, tmax_y);
 
-	// ray can't intersect with box is tmin > tmax_y or tmin_y > tmax
+	// ray can't intersect with box if tmin > tmax_y or tmin_y > tmax
 	if ((tmin > tmax_y) || (tmin_y > tmax)) return false;
 
 	// update tmin/tmax so it refers to the closest intersection
@@ -45,7 +57,7 @@ __host__ __device__ bool Box::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float&
 	float tmax_z = (max.z() - rayOrigin.z()) / rayDir.z();
 	if (tmin_z > tmax_z) swap(tmin_z, tmax_z);
 
-	// ray can't intersect with box is tmin > tmax_z or tmin_z > tmax
+	// ray can't intersect with box if tmin > tmax_z or tmin_z > tmax
 	if ((tmin > tmax_z) || (tmin_z > tmax)) return false;
 
 	// update tmin/tmax so it refers to the closest intersection
@@ -72,7 +84,7 @@ __host__ __device__ bool Box::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float&
 	return true;
 }
 
-__host__ __device__ vec3 Box::normalAt(vec3 point) {
+__host__ __device__ vec3 AABB::normalAt(vec3 point) {
 	vec3 boxCenter = (min + max) / 2;
 	vec3 p = point - boxCenter;
 

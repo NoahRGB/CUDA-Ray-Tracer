@@ -25,13 +25,13 @@ __device__ vec3 lighting(Material mat, vec3 lightPos, vec3 lightIntensity, vec3 
 	
 	// ambient
 	if (config.ambientLighting) {
-		colour = lightIntensity * mat.colour * mat.ambient;
+		colour = lightIntensity * mat.ambientColour * mat.ambient;
 	}
 
 	// diffuse
 	if (config.diffuseLighting) {
 		float NdotL = max(dot(normal, L), 0.0f);
-		colour += (NdotL > 0.0) ? (mat.colour * lightIntensity * mat.diffuse * NdotL) : vec3();
+		colour += (NdotL > 0.0) ? (mat.diffuseColour * lightIntensity * mat.diffuse * NdotL) : vec3();
 	}
 
 	// specular
@@ -97,46 +97,48 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 	return false;
 }
 
-//__device__ bool traceRay2(Object* objects, int objectCount, vec3 origin, vec3 dir, RayType rayType, Hit& hit, vec3& ignore = vec3(-999, -999, -999)) {
-//	for (int i = 0; i < objectCount; i++) {
-//
-//		if (objects[i].position != ignore) {
-//			float t0, t1;
-//			if (objects[i].hit(origin, dir, t0, t1)) {
-//
-//				if (rayType == ShadowRay) {
-//					if (!objects[i].debug) return true;
-//					continue;
-//				}
-//
-//				if (rayType == ReflectRay && objects[i].debug) continue;
-//
-//				if (t0 < hit.t) {
-//					vec3 hitPoint = origin + t0 * dir;
-//					vec3 normal = objects[i].normalAt(hitPoint);
-//					hit = { t0, objects[i].mat, hitPoint, normal, objects[i].position, objects[i].objectType, objects[i].objectName, objects[i].debug };
-//				}
-//			}
-//		}
-//	}
-//
-//	if (hit.t != 999) {
-//		hit.normal = normalise(hit.normal);
-//		return true;
-//	}
-//
-//	return false;
-//}
+__device__ bool modelTraceRay(Model* models, int modelCount, vec3 origin, vec3 dir, RayType rayType, Hit& hit) {
+	for (int i = 0; i < modelCount; i++) {
+
+		float t0, t1;
+		Vertex hitVertex;
+		if (models[i].hit(origin, dir, t0, t1, hitVertex)) {
+
+			if (rayType == ShadowRay) {
+				if (!models[i].debug) return true;
+				continue;
+			}
+
+			if (rayType == ReflectRay && models[i].debug) continue;
+
+			if (t0 < hit.t) {
+				vec3 hitPoint = origin + t0 * dir;
+				vec3 normal = models[i].normalAt(hitPoint);
+				Material mat = models[i].mat;
+				mat.ambientColour = models[i].materials[hitVertex.materialIndex].ambient;
+				mat.diffuseColour = models[i].materials[hitVertex.materialIndex].diffuse;
+				hit = { t0, mat, hitPoint, hitVertex.normal, models[i].position, models[i].objectType, models[i].objectName, models[i].debug };
+			}
+		}
+	}
+
+	if (hit.t != 999) {
+		hit.normal = normalise(hit.normal);
+		return true;
+	}
+
+	return false;
+}
 
 __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, vec3& ignore, int depth = 1) {
 	Hit sphereHit, planeHit, boxHit, closestHit;
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, sphereHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, planeHit);
-	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, ReflectRay, boxHit);
+	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
 	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
 
 
-	if (sphereTrace || planeTrace || boxTrace) {
+	if (sphereTrace || planeTrace || AABBTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (config.renderHardShadows) {
@@ -152,14 +154,12 @@ __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConf
 }
 
 __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& config, vec3& ignore, int depth = 1) {
-	Hit sphereHit, planeHit, boxHit, closestHit;
-	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, sphereHit);
-	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, planeHit);
-	bool boxTrace = traceRay(scene.boxes, scene.boxCount, origin, dir, ReflectRay, boxHit);
-	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
+	Hit closestHit;
+	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, closestHit);
+	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, closestHit);
+	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
 
-
-	if (sphereTrace || planeTrace || boxTrace) {
+	if (sphereTrace || planeTrace || AABBTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (config.reflections && closestHit.objectType == Reflect && depth <= config.maxDepth) {
@@ -189,14 +189,14 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 	Hit closestHit;
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, closestHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, closestHit);
-	bool boxTrace = config.renderBoxes ? traceRay(scene.boxes, scene.boxCount, origin, dir, PrimaryRay, closestHit) : false;
+	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
 	bool triangleTrace = traceRay(scene.triangles, scene.triangleCount, origin, dir, PrimaryRay, closestHit);
-	bool modelTrace = traceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit);
+	bool modelTrace = modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit);
 
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
 
-	if (sphereTrace || planeTrace || boxTrace || triangleTrace || modelTrace) {
+	if (sphereTrace || planeTrace || AABBTrace || triangleTrace || modelTrace) {
 		vec3 col;
 
 		if (!closestHit.debug) {
@@ -212,16 +212,16 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 				else if (closestHit.objectName == ObjectName::Sphere_t) {
 					col += config.sphereReflectionStrength * reflectionCol;
 				}
-				else if (closestHit.objectName == ObjectName::Box_t) {
-					col += config.boxReflectionStrength * reflectionCol;
+				else if (closestHit.objectName == ObjectName::AABB_t) {
+					col += config.AABBReflectionStrength * reflectionCol;
 				}
 			}
 
 			if (config.renderHardShadows) {
 				Hit shadowHit;
 				bool sphereShadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-				bool boxShadowTrace = traceRay(scene.boxes, scene.boxCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-				col = (sphereShadowTrace || boxShadowTrace) ? col * config.shadowIntensity : col;
+				bool AABBShadowTrac = traceRay(scene.AABBs, scene.AABBCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
+				col = (sphereShadowTrace || AABBShadowTrac) ? col * config.shadowIntensity : col;
 			}
 
 			if (config.renderSoftShadows) {
@@ -239,7 +239,7 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 					vec3 lightPoint = scene.lights[0].position + pointOnSphere;
 					Hit hit;
 					hits += traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
-					hits += traceRay(scene.boxes, scene.boxCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
+					hits += traceRay(scene.AABBs, scene.AABBCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
 
 				}
 				col = col * (1 - ((float)hits / config.softShadowNum));
@@ -247,13 +247,13 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 		}
 		else {
 			// is a debug object so just colour it fully
-			col = vec3(closestHit.mat.colour.x(), closestHit.mat.colour.y(), closestHit.mat.colour.z());
+			col = vec3(closestHit.mat.ambientColour.x(), closestHit.mat.ambientColour.y(), closestHit.mat.ambientColour.z());
 		}
 
 		return col;
 	}
 
-	return vec3(0.1, 0.1, 0.1) * (float)config.backgroundBrightness;
+	return config.backgroundCol;
 }
 
 __global__ void rayTrace(int width, int height, GLubyte* framebuffer, Scene scene, SceneConfig config, curandState* randStates) {

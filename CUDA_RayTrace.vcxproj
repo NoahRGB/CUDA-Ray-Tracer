@@ -25,8 +25,7 @@
     <CudaCompile Include="Triangle.cpp" />
     <CudaCompile Include="Sphere.cpp" />
     <CudaCompile Include="Camera.cpp" />
-    <CudaCompile Include="Box.cpp" />
-    <CudaCompile Include="BoundingBox.cpp" />
+    <CudaCompile Include="AABB.cpp" />
     <ClCompile Include="imgui\imgui.cpp" />
     <ClCompile Include="imgui\imgui_demo.cpp" />
     <ClCompile Include="imgui\imgui_draw.cpp" />
@@ -48,8 +47,7 @@
   <ItemGroup>
     <CudaCompile Include="Sphere.h" />
     <CudaCompile Include="Camera.h" />
-    <CudaCompile Include="Box.h" />
-    <CudaCompile Include="BoundingBox.h" />
+    <CudaCompile Include="AABB.h" />
     <ClInclude Include="imgui\imconfig.h" />
     <ClInclude Include="imgui\imgui.h" />
     <ClInclude Include="imgui\imgui_impl_glfw.h" />

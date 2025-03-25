@@ -6,7 +6,7 @@
 #include "Plane.h"
 #include "Triangle.h"
 #include "Model.h"
-#include "Box.h"
+#include "AABB.h"
 
 #include <gl/glew.h>
 #include <map>
@@ -21,8 +21,8 @@ __host__ __device__ struct Scene {
 	Plane* planes;
 	int planeCount;
 
-	Box* boxes;
-	int boxCount;
+	AABB* AABBs;
+	int AABBCount;
 
 	Triangle* triangles;
 	int triangleCount;
@@ -38,25 +38,30 @@ __host__ __device__ struct Scene {
 
 __host__ __device__ struct SceneConfig {
 	int fps;
+
 	float shadowBias = 0.01;
 	bool renderHardShadows = false;
 	bool renderSoftShadows = false;
+	int softShadowRadius = 5;
+	int softShadowNum = 15;
+	float shadowIntensity = 0.5;
+
 	bool areaLightSpecularEffect = false;
 	bool reflections = false;
 	int maxDepth = 2;
-	int softShadowRadius = 5;
-	int softShadowNum = 15;
 	float sphereReflectionStrength = 0.5;
 	float planeReflectionStrength = 0.5;
-	float boxReflectionStrength = 0.5;
-	float shadowIntensity = 0.5;
-	bool renderBoxes = false;
+	float AABBReflectionStrength = 0.5;
+
+	bool renderAABBs = false;
+
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
 	bool specularLighting = true;
 	bool antiAliasing = false;
-	vec3 backgroundCol = vec3(0.8, 0.8, 0.8);
-	int backgroundBrightness = 2;
+
+	vec3 backgroundCol = vec3(0.1, 0.1, 0.1);
+	int backgroundBrightness = 8;
 	int floorBrightness = 4;
 };
 
@@ -86,6 +91,6 @@ public:
 
 	void addSphere(vec3 pos, float radius, Material mat, ObjectType objectType = Diffuse);
 	void addPlane(vec3 pos, vec3 n, Material mat, ObjectType objectType = Diffuse);
-	void addBox(vec3 pos, float size, Material mat, ObjectType objectType = Diffuse);
+	void addAABB(vec3 pos, float size, Material mat, ObjectType objectType = Diffuse);
 };
 
