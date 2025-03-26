@@ -135,10 +135,12 @@ __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConf
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, sphereHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, planeHit);
 	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
+	bool triangleTrace = traceRay(scene.triangles, scene.triangleCount, origin, dir, PrimaryRay, closestHit);
+	bool modelTrace = modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit);
 	closestHit = (sphereHit.t < planeHit.t) ? ((sphereHit.t < boxHit.t) ? sphereHit : boxHit) : ((planeHit.t < boxHit.t) ? planeHit : boxHit);
 
 
-	if (sphereTrace || planeTrace || AABBTrace) {
+	if (sphereTrace || planeTrace || AABBTrace || triangleTrace || modelTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (config.renderHardShadows) {
@@ -158,8 +160,10 @@ __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfi
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, closestHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, closestHit);
 	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
+	bool triangleTrace = traceRay(scene.triangles, scene.triangleCount, origin, dir, PrimaryRay, closestHit);
+	bool modelTrace = modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit);
 
-	if (sphereTrace || planeTrace || AABBTrace) {
+	if (sphereTrace || planeTrace || AABBTrace || triangleTrace || modelTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
 
 		if (config.reflections && closestHit.objectType == Reflect && depth <= config.maxDepth) {

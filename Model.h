@@ -32,6 +32,9 @@ public:
 	TextureMaterial* materials;
 	int materialCount;
 
+	int* indices;
+	int indicesCount;
+
 	int meshCount;
 };
 

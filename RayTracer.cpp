@@ -84,7 +84,7 @@ void RayTracer::initialiseScene() {
 
 	scene.models = new Model[scene.modelCount];
 	cudaMallocManaged((void**)&scene.models, scene.modelCount * sizeof(Model));
-	scene.models[0] = Model(vec3(0.0, -20.0, 0.0), 15, "log.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 0.0, 200.0 }, false, Diffuse);
+	scene.models[0] = Model(vec3(0.0, -20.0, 0.0), 15, "models/chicken.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 0.0, 200.0 }, false, Reflect);
 
 	scene.lights = new Light[scene.lightCount];
 	cudaMallocManaged((void**)&scene.lights, scene.lightCount * sizeof(Light));

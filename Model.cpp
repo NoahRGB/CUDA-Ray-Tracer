@@ -18,16 +18,26 @@ Model::Model(vec3 position, int size, char* filename, Material mat, bool debug, 
 	objl::Loader loader;
 	loader.LoadFile(filename);
 
-	vertCount = 0;
+	vertCount = loader.LoadedVertices.size();
+	indicesCount = loader.LoadedIndices.size();
 	materialCount = loader.LoadedMaterials.size();
 	meshCount = loader.LoadedMeshes.size();
 
+	std::cout << std::endl << std::endl;
+
+	std::cout << "Loaded vert count: " << vertCount << std::endl;
+	std::cout << "Loaded indices count: " << indicesCount << std::endl;
+	std::cout << "Loaded material count: " << materialCount << std::endl;
+	std::cout << "Loaded mesh count: " << meshCount << std::endl;
+
+	std::cout << std::endl << std::endl;
+
 	cudaMallocManaged((void**)&materials, materialCount * sizeof(TextureMaterial));
+	cudaMallocManaged((void**)&vertices, vertCount * sizeof(Vertex));
+	cudaMallocManaged((void**)&indices, indicesCount * sizeof(int));
 
-	for (int i = 0; i < meshCount; i++) {
-		vertCount += loader.LoadedMeshes[i].Vertices.size();
-	}
 
+	// set materials
 	for (int i = 0; i < materialCount; i++) {
 		objl::Material mat = loader.LoadedMaterials[i];
 		materials[i].name = (char*)mat.name.c_str();
@@ -36,18 +46,22 @@ Model::Model(vec3 position, int size, char* filename, Material mat, bool debug, 
 		materials[i].specular = vec3(mat.Ks.X, mat.Ks.Y, mat.Ks.Z);
 	}
 
-	cudaMallocManaged((void**)&vertices, vertCount * sizeof(Vertex));
+	//set indices
+	for (int i = 0; i < indicesCount; i++) {
+		indices[i] = loader.LoadedIndices[i];
+	}
 
+	// set vertices
 	int vertIndex = 0;
-	for (int i = 0; i < loader.LoadedMeshes.size(); i++) {
+	for (int i = 0; i < meshCount; i++) {
 		objl::Mesh mesh = loader.LoadedMeshes[i];
 		for (int j = 0; j < mesh.Vertices.size(); j++) {
-			vertIndex++;
-			vertices[vertIndex].position = vec3(mesh.Vertices[j].Position.X * (float)size, mesh.Vertices[j].Position.Y * (float)size, mesh.Vertices[j].Position.Z * (float)size);
+
+			vertices[vertIndex].position = vec3(position.x() + mesh.Vertices[j].Position.X * (float)size, position.y() + mesh.Vertices[j].Position.Y * (float)size, position.z() + mesh.Vertices[j].Position.Z * (float)size);
 			vertices[vertIndex].textureCoords = vec3(mesh.Vertices[j].TextureCoordinate.X, mesh.Vertices[j].TextureCoordinate.Y, 0);
 			vertices[vertIndex].normal = vec3(mesh.Vertices[j].Normal.X, mesh.Vertices[j].Normal.Y, mesh.Vertices[j].Normal.Z);
 
-			boundingBox.extendBy(position + vertices[j].position);
+			boundingBox.extendBy(vertices[vertIndex].position);
 
 			// find corresponding material
 			for (int k = 0; k < materialCount; k++) {
@@ -56,11 +70,13 @@ Model::Model(vec3 position, int size, char* filename, Material mat, bool debug, 
 					break;
 				}
 			}
+			vertIndex++;
 		}
 	}
 }
 
 Model::~Model() {
+
 }
 
 __host__ __device__ bool Model::triangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec3 rayOrigin, vec3 rayDir, float& t, float& u, float& v) {
@@ -90,17 +106,47 @@ __host__ __device__ bool Model::triangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec
 __host__ __device__ bool Model::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1, Vertex& hitVertex) {
 
 	if (boundingBox.hit(rayOrigin, rayDir, t0, t1)) {
-		for (int i = 0; i < vertCount - 3; i += 3) {
-			float u, v;
-			if (triangleIntersect(position + vertices[i].position, position + vertices[i + 1].position, position + vertices[i + 2].position, rayOrigin, rayDir, t0, u, v)) {
-				hitVertex = {
-					vec3(),
-					vertices[i].textureCoords,
-					vertices[i].normal,
-					vertices[i].materialIndex,
-				};
-				return true;
+		//for (int i = 0; i < vertCount - 3; i += 3) {
+		//	float u, v;
+		//	if (triangleIntersect(vertices[i].position, vertices[i + 1].position, vertices[i + 2].position, rayOrigin, rayDir, t0, u, v)) {
+		//		hitVertex = {
+		//			vec3(),
+		//			vertices[i].textureCoords,
+		//			vertices[i].normal,
+		//			vertices[i].materialIndex,
+		//		};
+		//		return true;
+		//	}
+		//}
+
+		float tClosest = 999;
+		float u, v, w;
+		Vertex v0, v1, v2;
+
+		for (int i = 0; i < indicesCount - 3; i += 3) {
+			float t_tmp, u_tmp, v_tmp;
+			if (triangleIntersect(vertices[indices[i]].position, vertices[indices[i + 1]].position, vertices[indices[i + 2]].position, rayOrigin, rayDir, t_tmp, u_tmp, v_tmp)) {
+				if (t_tmp < tClosest) {
+					tClosest = t_tmp;
+					v0 = vertices[indices[i]];
+					v1 = vertices[indices[i + 1]];
+					v2 = vertices[indices[i + 2]];
+					u = u_tmp;
+					v = v_tmp;
+				}
 			}
+		}
+
+		if (tClosest != 999) {
+			float w = 1 - u - v;
+			hitVertex = {
+				vec3(),
+				u * v0.textureCoords + v * v1.textureCoords + v2.textureCoords,
+				u * v0.normal + v * v1.normal + w * v2.normal,
+				v0.materialIndex,
+			};
+			t0 = tClosest;
+			return true;
 		}
 	}
 
