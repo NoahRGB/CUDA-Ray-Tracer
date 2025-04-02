@@ -23,25 +23,13 @@ Window::Window(int width, int height, char* title) {
 	this->width = width;
 	this->height = height;
 	this->title = title;
+
 	rayTracer.config.fps = 0;
+	lastRenderTime = 0;
+	measuringRenderTimes = false;
 
 	mouseEnabled = true;
 	firstMouse = true;
-}
-
-void Window::reshape(GLFWwindow* window, int width, int height) {
-	Window* win = static_cast<Window*>(glfwGetWindowUserPointer(window));
-	if (win) {
-
-		// update width & height for window, square and raytracer
-		win->width = width;
-		win->height = height;
-
-		win->square.setSize(width, height);
-		win->rayTracer.resize(width, height);
-
-		glViewport(0.0, 0.0, width, height);
-	}
 }
 
 void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int mods) {
@@ -58,14 +46,12 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 		if (key == GLFW_KEY_K) win->keys['k'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['k'];
 		if (key == GLFW_KEY_L) win->keys['l'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['l'];
 
-		if (key == GLFW_KEY_TAB && action == GLFW_PRESS) {
-			GLFWmonitor* monitor = glfwGetWindowMonitor(window);
-			const GLFWvidmode* mode = glfwGetVideoMode(glfwGetPrimaryMonitor());
-			glfwSetWindowMonitor(window, monitor, 0, 0, mode->width, mode->height, mode->refreshRate);
-		}
-
 		if (key == GLFW_KEY_V) {
 			std::cout << win->rayTracer.scene.cam.getPosition().x() << ", " << win->rayTracer.scene.cam.getPosition().y() << ", " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
+		}
+
+		if (key == GLFW_KEY_R && action == GLFW_PRESS) {
+			win->startRenderTimeMeasure();
 		}
 
 		if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
@@ -78,6 +64,16 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 				win->mouseEnabled = false;
 				glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL);
 			}
+		}
+
+		if (key == GLFW_KEY_5 && action == GLFW_PRESS) {
+			win->rayTracer.switchScene(0);
+		}
+		if (key == GLFW_KEY_6 && action == GLFW_PRESS) {
+			win->rayTracer.switchScene(1);
+		}
+		if (key == GLFW_KEY_7 && action == GLFW_PRESS) {
+			win->rayTracer.switchScene(2);
 		}
 	}
 }
@@ -123,8 +119,6 @@ int Window::init() {
 
 	setup();
 
-	glfwSetFramebufferSizeCallback(window, reshape);
-
 	glfwSetKeyCallback(window, keyInput);
 	glfwSetCursorPosCallback(window, mouseInput);
 
@@ -151,7 +145,7 @@ void Window::setup() {
 }
 
 void Window::run() {
-	savedTime = glfwGetTime();
+	savedFrameTime = glfwGetTime();
 	frameCount = 0;
 	while (!glfwWindowShouldClose(window) && !glfwGetKey(window, GLFW_KEY_ESCAPE)) {
 		glfwSwapBuffers(window);
@@ -163,8 +157,10 @@ void Window::run() {
 
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
+		ImGui::Text("Render time: %f", lastRenderTime);
 		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
 		ImGui::Checkbox("Render boxes", &rayTracer.config.renderAABBs);
+		ImGui::Checkbox("Render models", &rayTracer.config.renderModels);
 		ImGui::SliderInt("Background brightness", &rayTracer.config.backgroundBrightness, 1, 10);
 		ImGui::SliderInt("Floor brightness", &rayTracer.config.floorBrightness, 1, 10);
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
@@ -254,6 +250,18 @@ void Window::run() {
 	ImGui::DestroyContext();
 }
 
+void Window::startRenderTimeMeasure() {
+	measuringRenderTimes = true;
+	numRendersMeasured = 0;
+	totalRenderTimes = 0;
+}
+
+void Window::stopRenderTimeMeasure() {
+	measuringRenderTimes = false;
+	double averageRenderTime = totalRenderTimes / numRendersMeasured;
+	std::cout << "Average render time over " << numRendersMeasured << " renders is: " << averageRenderTime << std::endl;
+}
+
 void Window::display() {
 	if (keys['w']) {
 		rayTracer.scene.cam.move(rayTracer.scene.cam.FORWARD);
@@ -298,17 +306,29 @@ void Window::display() {
 
 	double currentTime = glfwGetTime();
 	frameCount++;
-	if (currentTime - savedTime >= 1.0) {
+	if (currentTime - savedFrameTime >= 1.0) {
 		rayTracer.config.fps = frameCount;
 		frameCount = 0;
-		savedTime = currentTime;
+		savedFrameTime = currentTime;
 	}
 
 	// ####### render #######
 
 	glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
+	double timeBefore = glfwGetTime();
 	rayTracer.launchKernel();
+	double timeAfter = glfwGetTime();
+	lastRenderTime = timeAfter - timeBefore;
+
+
+	if (measuringRenderTimes) {
+		numRendersMeasured++;
+		totalRenderTimes += lastRenderTime;
+		if (numRendersMeasured == 100) {
+			stopRenderTimeMeasure();
+		}
+	}
 
 	square.setTextureToPixels(rayTracer.framebuffer);
 	square.render();

@@ -30,6 +30,7 @@
     <CudaCompile Include="Window.h" />
     <CudaCompile Include="AABB.cpp" />
     <CudaCompile Include="AABB.h" />
+    <CudaCompile Include="stb_image.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp">

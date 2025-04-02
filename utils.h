@@ -2,6 +2,7 @@
 
 #include <vector>
 #include <random>
+#include <string>
 
 #include <cuda_runtime.h>
 
@@ -60,13 +61,19 @@ __host__ __device__ struct Vertex {
 	vec3 textureCoords;
 	vec3 normal;
 	int materialIndex;
-};
-
-__host__ __device__ struct TextureMaterial {
-	char* name;
 	vec3 ambient;
 	vec3 diffuse;
 	vec3 specular;
+};
+
+__host__ __device__ struct TextureMaterial {
+	std::string name = "";
+	vec3 ambient;
+	vec3 diffuse;
+	vec3 specular;
+	std::string ambient_map_name = "";
+	std::string diffuse_map_name = "";
+	std::string specular_map_name = "";
 };
 
 __host__ __device__ bool solveQuadratic(const float& a, const float& b, const float& c, float& x0, float& x1);

@@ -24,9 +24,6 @@ __host__ __device__ struct Scene {
 	AABB* AABBs;
 	int AABBCount;
 
-	Triangle* triangles;
-	int triangleCount;
-
 	Light* lights;
 	int lightCount = 1;
 
@@ -54,6 +51,7 @@ __host__ __device__ struct SceneConfig {
 	float AABBReflectionStrength = 0.5;
 
 	bool renderAABBs = false;
+	bool renderModels = false;
 
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
@@ -70,6 +68,9 @@ public:
 	Scene scene;
 	SceneConfig config;
 
+	Scene* scenes;
+	int sceneCount;
+
 	dim3 dimBlock;
 	dim3 dimGrid;
 
@@ -84,10 +85,9 @@ public:
 
 	void init(int width, int height);
 
-	void initialiseScene();
+	void initialiseScenes();
+	void switchScene(int sceneNum);
 	void launchKernel();
-
-	void resize(int width, int height);
 
 	void addSphere(vec3 pos, float radius, Material mat, ObjectType objectType = Diffuse);
 	void addPlane(vec3 pos, vec3 n, Material mat, ObjectType objectType = Diffuse);

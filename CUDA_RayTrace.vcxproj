@@ -45,6 +45,7 @@
     <CudaCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="stb_image.h" />
     <CudaCompile Include="Sphere.h" />
     <CudaCompile Include="Camera.h" />
     <CudaCompile Include="AABB.h" />
@@ -108,7 +109,7 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <ClCompile>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>TurnOffAllWarnings</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <AdditionalIncludeDirectories>$(SolutionDir)/includes;%(AdditionalIncludeDirectories);$(CudaToolkitIncludeDir)</AdditionalIncludeDirectories>
@@ -125,6 +126,7 @@
       <Include>$(SolutionDir)/includes</Include>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <GenerateRelocatableDeviceCode>true</GenerateRelocatableDeviceCode>
+      <Warning>W0</Warning>
     </CudaCompile>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">

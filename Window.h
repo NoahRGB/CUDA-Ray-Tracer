@@ -20,8 +20,13 @@ private:
 
 	std::map<char, bool> keys;
 
-	double savedTime;
+	double savedFrameTime;
 	int frameCount;
+
+	double lastRenderTime;
+	bool measuringRenderTimes;
+	int numRendersMeasured;
+	double totalRenderTimes;
 
 	bool mouseEnabled;
 	double lastMouseX;
@@ -30,7 +35,8 @@ private:
 
 	void display();
 	void setup();
-	static void reshape(GLFWwindow* window, int width, int height);
+	void startRenderTimeMeasure();
+	void stopRenderTimeMeasure();
 	static void keyInput(GLFWwindow* window, int key, int scancode, int action, int mods);
 	static void mouseInput(GLFWwindow* window, double x, double y);
 	static void mouseButtonInput(GLFWwindow* window, int button, int action, int mods);
