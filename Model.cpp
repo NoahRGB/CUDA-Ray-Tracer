@@ -82,8 +82,6 @@ Model::Model(vec3 position, int size, char* filename, Material mat, bool debug, 
 		}
 	}
 
-
-
 	stbi_image_free(imageData);
 }
 
@@ -115,9 +113,52 @@ __host__ __device__ bool Model::triangleIntersect(vec3 v0, vec3 v1, vec3 v2, vec
 	return true;
 }
 
-__host__ __device__ bool Model::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1, Vertex& hitVertex, RayType rayType) {
+__host__ __device__ bool Model::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1, Vertex& hitVertex, RayType rayType, bool accelerate) {
 
-	if (boundingBox.hit(rayOrigin, rayDir, t0, t1)) {
+	if (accelerate) {
+		if (boundingBox.hit(rayOrigin, rayDir, t0, t1)) {
+			float tClosest = 999;
+			float u, v, w;
+			Vertex v0, v1, v2;
+
+			// for every 3 indices (1 triangle)
+			for (int i = 0; i < indicesCount - 3; i += 3) {
+				float t_tmp, u_tmp, v_tmp;
+				if (triangleIntersect(vertices[indices[i]].position, vertices[indices[i + 1]].position, vertices[indices[i + 2]].position, rayOrigin, rayDir, t_tmp, u_tmp, v_tmp)) {
+					if (t_tmp < tClosest && t_tmp > 0) {
+						tClosest = t_tmp;
+						v0 = vertices[indices[i]];
+						v1 = vertices[indices[i + 1]];
+						v2 = vertices[indices[i + 2]];
+						u = u_tmp;
+						v = v_tmp;
+					}
+				}
+			}
+
+			// if an intersection was found
+			if (tClosest != 999) {
+				float w = 1 - u - v;
+				// use u/v/w to interpolate the texture/colours for the hit
+				hitVertex = {
+					vec3(),
+					u * v0.textureCoords + v * v1.textureCoords + w * v2.textureCoords,
+					u * v0.normal + v * v1.normal + w * v2.normal,
+					v0.materialIndex,
+					u * v0.ambient + v * v1.ambient + w * v2.ambient,
+					u * v0.diffuse + v * v1.diffuse + w * v2.diffuse,
+					u * v0.specular + v * v1.specular + w * v2.specular,
+				};
+				t0 = tClosest;
+				return true;
+			}
+		}
+
+		return false;
+	}
+
+
+	else {
 		float tClosest = 999;
 		float u, v, w;
 		Vertex v0, v1, v2;
@@ -153,9 +194,10 @@ __host__ __device__ bool Model::hit(vec3 rayOrigin, vec3 rayDir, float& t0, floa
 			t0 = tClosest;
 			return true;
 		}
-	}
 
-	return false;
+		return false;
+	}
+	
 }
 
 __host__ __device__ vec3 Model::normalAt(vec3 point) {

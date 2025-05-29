@@ -25,9 +25,9 @@ RayTracer::~RayTracer() {
 		cudaFree(scenes[i].planes);
 		cudaFree(scenes[i].AABBs);
 
-		for (int i = 0; i < scenes[i].modelCount; i++) {
-			cudaFree(scenes[i].models[i].vertices);
-			cudaFree(scenes[i].models[i].indices);
+		for (int j = 0; j < scenes[i].modelCount; j++) {
+			cudaFree(scenes[i].models[j].vertices);
+			cudaFree(scenes[i].models[j].indices);
 		}
 		cudaFree(scenes[i].models);
 
@@ -39,7 +39,7 @@ void RayTracer::init(int width, int height) {
 	this->width = width;
 	this->height = height;
 
-	dimBlock = dim3(20, 20);
+	dimBlock = dim3(16, 16);
 	dimGrid = dim3((width + dimBlock.x - 1) / dimBlock.x, (height + dimBlock.y - 1) / dimBlock.y);
 
 	sceneCount = 3;
@@ -52,11 +52,13 @@ void RayTracer::initialiseScenes() {
 
 	// scene 1
 	scenes[0].cam = Camera(vec3(0, 0, 30), 90.0, width / (float)height);
-	scenes[0].sphereCount = 1; scenes[0].planeCount = 1; scenes[0].AABBCount = 0; scenes[0].modelCount = 1; scenes[0].lightCount = 1;
+	scenes[0].sphereCount = 2; scenes[0].planeCount = 1; scenes[0].AABBCount = 12; scenes[0].modelCount = 0; scenes[0].lightCount = 1;
 
 	scenes[0].spheres = new Sphere[scenes[0].sphereCount];
 	cudaMallocManaged((void**)&scenes[0].spheres, scenes[0].sphereCount * sizeof(Sphere));
 	scenes[0].spheres[0] = Sphere(vec3(0.0, 0.0, -50.0), 2.0, { vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, true);
+	//scenes[0].spheres[1] = Sphere(vec3(0.0, 0.0, 0.0), 10.0, { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.2, 0.8, 0.9, 200.0 }, false, Reflect);
+
 
 	scenes[0].planes = new Plane[scenes[0].planeCount];
 	cudaMallocManaged((void**)&scenes[0].planes, scenes[0].planeCount * sizeof(Plane));
@@ -64,10 +66,28 @@ void RayTracer::initialiseScenes() {
 
 	scenes[0].AABBs = new AABB[scenes[0].AABBCount];
 	cudaMallocManaged((void**)&scenes[0].AABBs, scenes[0].AABBCount * sizeof(AABB));
+	scenes[0].AABBs[0] = AABB(vec3(100.0, 0.0, 0.0), 100.0, { vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+	scenes[0].AABBs[3] = AABB(vec3(100.0, -100.0, 0.0), 100.0, { vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+	scenes[0].AABBs[8] = AABB(vec3(100.0, 0.0, 100.0), 100.0, { vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+	scenes[0].AABBs[9] = AABB(vec3(100.0, -100.0, 100.0), 100.0, { vec3(0.0, 0.0, 1.0), vec3(0.0, 0.0, 1.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+
+	scenes[0].AABBs[1] = AABB(vec3(-100.0, 0.0, 0.0), 100.0, { vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+	scenes[0].AABBs[4] = AABB(vec3(-100.0, -100.0, 0.0), 100.0, { vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+	scenes[0].AABBs[10] = AABB(vec3(-100.0, 0.0, 100.0), 100.0, { vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+	scenes[0].AABBs[11] = AABB(vec3(-100.0, -100.0, 100.0), 100.0, { vec3(1.0, 1.0, 0.0), vec3(1.0, 1.0, 0.0), 0.2, 0.2, 0.3, 10 }, false, Reflect);
+
+	scenes[0].AABBs[2] = AABB(vec3(0.0, 0.0, -100.0), 100.0, { vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 1.0), 0.2, 0.2, 0.3, 10 }, false, Diffuse);
+	scenes[0].AABBs[5] = AABB(vec3(0.0, -100.0, -100.0), 100.0, { vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 1.0), 0.2, 0.2, 0.3, 10 }, false, Diffuse);
+
+	scenes[0].AABBs[6] = AABB(vec3(0.0, 0.0, 10.0), 40.0, { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.2, 0.8, 0.9, 200 }, false, Diffuse);
+	scenes[0].AABBs[7] = AABB(vec3(0.0, -30.0, 10.0), 20.0, { vec3(0.0, 1.0, 0.0), vec3(0.0, 1.0, 0.0), 0.2, 0.8, 0.9, 200 }, false, Diffuse);
 
 	scenes[0].models = new Model[scenes[0].modelCount];
 	cudaMallocManaged((void**)&scenes[0].models, scenes[0].modelCount * sizeof(Model));
-	scenes[0].models[0] = Model(vec3(0.0, 20.0, 0.0), 15, "models/Chest_gold.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 0.0, 200.0 }, false, Reflect);
+
+	//scenes[0].models[0] = Model(vec3(0.0, 19.0, 0.0), 15, "models/Table.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 0.0, 10.0 }, false, Diffuse);
+	//scenes[0].models[1] = Model(vec3(0.0, 6.0, 10.0), 10, "models/Chalice.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 1.0, 1000.0 }, false, Reflect);
+	//scenes[0].models[2] = Model(vec3(0.0, 6.0, 0.0), 10, "models/Book2_Open.obj", { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.1, 0.9, 0.0, 10.0 }, false, Diffuse);
 
 	scenes[0].lights = new Light[scenes[0].lightCount];
 	cudaMallocManaged((void**)&scenes[0].lights, scenes[0].lightCount * sizeof(Light));
@@ -77,13 +97,13 @@ void RayTracer::initialiseScenes() {
 
 
 	// scene 2
-	scenes[1].cam = Camera(vec3(0, 0, 30), 90.0, width / (float)height);
-	scenes[1].sphereCount = 2; scenes[1].planeCount = 1; scenes[1].AABBCount = 0; scenes[0].modelCount = 0; scenes[0].lightCount = 1;
+	scenes[1].cam = Camera(vec3(0, 0, 0), 90.0, width / (float)height);
+	scenes[1].sphereCount = 2; scenes[1].planeCount = 1; scenes[1].AABBCount = 0; scenes[1].modelCount = 0; scenes[1].lightCount = 1;
 
 	scenes[1].spheres = new Sphere[scenes[1].sphereCount];
 	cudaMallocManaged((void**)&scenes[1].spheres, scenes[1].sphereCount * sizeof(Sphere));
-	scenes[1].spheres[0] = Sphere(vec3(0.0, 0.0, -50.0), 2.0, { vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, true);
-	scenes[1].spheres[1] = Sphere(vec3(0.0, 0.0, 0.0), 2.0, { vec3(0.0, 1.0, 1.0), vec3(0.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, false);
+	scenes[1].spheres[0] = Sphere(vec3(-30.0, -70.0, 0.0), 2.0, { vec3(1.0, 1.0, 1.0), vec3(1.0, 1.0, 1.0), 1.0, 0.0, 0.0, 200.0 }, true);
+	scenes[1].spheres[1] = Sphere(vec3(0.0, 0.0, -70.0), 15.0, { vec3(1.0, 0.0, 0.0), vec3(1.0, 0.0, 0.0), 0.2, 0.8, 0.8, 200.0 }, false);
 
 	scenes[1].planes = new Plane[scenes[1].planeCount];
 	cudaMallocManaged((void**)&scenes[1].planes, scenes[1].planeCount * sizeof(Plane));
@@ -97,13 +117,13 @@ void RayTracer::initialiseScenes() {
 
 	scenes[1].lights = new Light[scenes[1].lightCount];
 	cudaMallocManaged((void**)&scenes[1].lights, scenes[1].lightCount * sizeof(Light));
-	scenes[1].lights[0] = { { 0.0, -40.0, -50.0 }, vec3(1.0, 1.0, 1.0), vec3(0.5, 0.0, 0.0), 4, vec3(0.0, 0.0, 0.5), 2, 8 };
+	scenes[1].lights[0] = { { -30.0, -70.0, 0.0 }, vec3(1.0, 1.0, 1.0), vec3(0.5, 0.0, 0.0), 4, vec3(0.0, 0.0, 0.5), 2, 8 };
 
-	cudaMallocManaged((void**)&scenes[0].cam, sizeof(Camera));
+	cudaMallocManaged((void**)&scenes[1].cam, sizeof(Camera));
 
 	// scene 3
 	scenes[2].cam = Camera(vec3(0, 0, 30), 90.0, width / (float)height);
-	scenes[2].sphereCount = 101; scenes[2].planeCount = 1; scenes[2].AABBCount = 0; scenes[0].modelCount = 0; scenes[0].lightCount = 1;
+	scenes[2].sphereCount = 101; scenes[2].planeCount = 1; scenes[2].AABBCount = 0; scenes[2].modelCount = 0; scenes[2].lightCount = 1;
 
 	scenes[2].spheres = new Sphere[scenes[2].sphereCount];
 	cudaMallocManaged((void**)&scenes[2].spheres, scenes[2].sphereCount * sizeof(Sphere));
@@ -131,14 +151,14 @@ void RayTracer::initialiseScenes() {
 	cudaMallocManaged((void**)&scenes[2].lights, scenes[2].lightCount * sizeof(Light));
 	scenes[2].lights[0] = { { 0.0, -40.0, -50.0 }, vec3(1.0, 1.0, 1.0), vec3(0.5, 0.0, 0.0), 4, vec3(0.0, 0.0, 0.5), 2, 8 };
 
-	cudaMallocManaged((void**)&scenes[0].cam, sizeof(Camera));
+	cudaMallocManaged((void**)&scenes[2].cam, sizeof(Camera));
 
 	////////////////////////////////////////////////////////////////////////////////////////////
 
 	cudaMallocManaged((void**)&framebuffer, 3 * width * height * sizeof(GLubyte));
 
 	cudaMallocManaged((void**)&randStates, dimBlock.x * dimBlock.y * dimGrid.x * dimGrid.y * sizeof(curandState));
-	setupCurand<<<dimGrid, dimBlock>>>(randStates);
+	setupCurand<<<dimGrid, dimBlock>>>(randStates, unsigned(time(NULL)));
 	cudaError_t err = cudaGetLastError();
 	if (err != cudaSuccess) {
 		std::cerr << "CUDA Error: " << cudaGetErrorString(err) << " at " << __FILE__ << ", line: " << __LINE__ << std::endl;

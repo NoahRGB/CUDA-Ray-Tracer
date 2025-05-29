@@ -17,7 +17,7 @@ public:
 	~Model();
 	Model(vec3 position, int size, char* filename, Material mat, bool debug = false, ObjectType objectType = Diffuse);
 
-	__host__ __device__ bool hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1, Vertex& hitVertex, RayType rayType);
+	__host__ __device__ bool hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1, Vertex& hitVertex, RayType rayType, bool accelerate=true);
 
 	__host__ __device__ vec3 normalAt(vec3 point);
 

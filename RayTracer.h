@@ -46,21 +46,24 @@ __host__ __device__ struct SceneConfig {
 	bool areaLightSpecularEffect = false;
 	bool reflections = false;
 	int maxDepth = 2;
+	bool reflectPlanes = false;
 	float sphereReflectionStrength = 0.5;
 	float planeReflectionStrength = 0.5;
 	float AABBReflectionStrength = 0.5;
+	float modelReflectionStrength = 0.5;
 
-	bool renderAABBs = false;
+	bool renderAABBs = true;
 	bool renderModels = false;
 
 	bool ambientLighting = true;
 	bool diffuseLighting = true;
 	bool specularLighting = true;
 	bool antiAliasing = false;
+	bool boundingBox = true;
 
 	vec3 backgroundCol = vec3(0.1, 0.1, 0.1);
-	int backgroundBrightness = 8;
-	int floorBrightness = 4;
+	int backgroundBrightness = 1;
+	int floorBrightness = 10;
 };
 
 class RayTracer {

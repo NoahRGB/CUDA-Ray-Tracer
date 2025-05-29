@@ -1,10 +1,10 @@
-# Blender MTL File: 'ZombieSmooth.blend'
+# Blender MTL File: 'Crystal3.blend'
 # Material Count: 1
 
-newmtl Texture
+newmtl Green
 Ns 96.078431
 Ka 1.000000 1.000000 1.000000
-Kd 0.640000 0.640000 0.640000
+Kd 0.130034 0.640000 0.164621
 Ks 0.500000 0.500000 0.500000
 Ke 0.000000 0.000000 0.000000
 Ni 1.000000

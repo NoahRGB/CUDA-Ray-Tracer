@@ -27,6 +27,8 @@ private:
 	bool measuringRenderTimes;
 	int numRendersMeasured;
 	double totalRenderTimes;
+	double averageRenderTime;
+	int maxRendersToMeasure;
 
 	bool mouseEnabled;
 	double lastMouseX;

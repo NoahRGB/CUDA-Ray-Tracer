@@ -89,5 +89,8 @@ __host__ __device__ vec3 AABB::normalAt(vec3 point) {
 	vec3 p = point - boxCenter;
 
 	vec3 d = abs(min - max) / 2;
-	return vec3(int(p.x() / d.x()), int(p.y() / d.y()), int(p.z() / d.z()));
+	float bias = 1.00001;
+	vec3 normal = normalise(vec3(int(p.x() / d.x() * bias), int(p.y() / d.y() * bias), int(p.z() / d.z() * bias)));
+	//printf("%f, %f, %f\n", normal.x(), normal.y(), normal.z());
+	return normal;
 }

@@ -26,7 +26,11 @@ Window::Window(int width, int height, char* title) {
 
 	rayTracer.config.fps = 0;
 	lastRenderTime = 0;
-	measuringRenderTimes = false;
+	measuringRenderTimes = true;
+	averageRenderTime = 0;
+	totalRenderTimes = 0;
+	numRendersMeasured = 0;
+	maxRendersToMeasure = 100;
 
 	mouseEnabled = true;
 	firstMouse = true;
@@ -45,6 +49,8 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 		if (key == GLFW_KEY_J) win->keys['j'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['j'];
 		if (key == GLFW_KEY_K) win->keys['k'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['k'];
 		if (key == GLFW_KEY_L) win->keys['l'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['l'];
+		if (key == GLFW_KEY_U) win->keys['u'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['u'];
+		if (key == GLFW_KEY_O) win->keys['o'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['o'];
 
 		if (key == GLFW_KEY_V) {
 			std::cout << win->rayTracer.scene.cam.getPosition().x() << ", " << win->rayTracer.scene.cam.getPosition().y() << ", " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
@@ -66,13 +72,13 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 			}
 		}
 
-		if (key == GLFW_KEY_5 && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_V && action == GLFW_PRESS) {
 			win->rayTracer.switchScene(0);
 		}
-		if (key == GLFW_KEY_6 && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_N && action == GLFW_PRESS) {
 			win->rayTracer.switchScene(1);
 		}
-		if (key == GLFW_KEY_7 && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_M && action == GLFW_PRESS) {
 			win->rayTracer.switchScene(2);
 		}
 	}
@@ -158,27 +164,32 @@ void Window::run() {
 		ImGui::Begin("Ray Tracing");
 		ImGui::Text("FPS: %d", rayTracer.config.fps);
 		ImGui::Text("Render time: %f", lastRenderTime);
+		ImGui::Text("Average render time: %f over %d renders", averageRenderTime, maxRendersToMeasure);
 		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
+		ImGui::Checkbox("Use bounding boxes?", &rayTracer.config.boundingBox);
 		ImGui::Checkbox("Render boxes", &rayTracer.config.renderAABBs);
 		ImGui::Checkbox("Render models", &rayTracer.config.renderModels);
 		ImGui::SliderInt("Background brightness", &rayTracer.config.backgroundBrightness, 1, 10);
+		ImGui::SliderInt("Reflection depth", &rayTracer.config.maxDepth, 0, 3);
 		ImGui::SliderInt("Floor brightness", &rayTracer.config.floorBrightness, 1, 10);
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
 		if (ImGui::CollapsingHeader("Lighting options")) {
 			ImGui::SeparatorText("Lighting");
 			ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
 			ImGui::Checkbox("Soft Shadows", &rayTracer.config.renderSoftShadows);
+			ImGui::SliderInt("Soft shadow radius", &rayTracer.config.softShadowRadius, 1, 15);
+			ImGui::SliderInt("Soft shadow casts", &rayTracer.config.softShadowNum, 1, 50);
+			ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
 			ImGui::Checkbox("Area Light Specular", &rayTracer.config.areaLightSpecularEffect);
 			ImGui::Checkbox("Ambient lighting", &rayTracer.config.ambientLighting);
 			ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
 			ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
 			ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
-			ImGui::SliderInt("Soft shadow radius", &rayTracer.config.softShadowRadius, 1, 15);
-			ImGui::SliderInt("Soft shadow casts", &rayTracer.config.softShadowNum, 1, 50);
-			ImGui::SliderFloat("Shadow bias", &rayTracer.config.shadowBias, 0.0, 15.0);
+			ImGui::Checkbox("Reflect planes", &rayTracer.config.reflectPlanes);
 			ImGui::SliderFloat("Sphere Reflection strength", &rayTracer.config.sphereReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Plane Reflection strength", &rayTracer.config.planeReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Box Reflection strength", &rayTracer.config.AABBReflectionStrength, 0.0, 1.0);
+			ImGui::SliderFloat("Model Reflection strength", &rayTracer.config.modelReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Shadow intensity", &rayTracer.config.shadowIntensity, 0.0, 1.0);
 		}
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
@@ -251,15 +262,13 @@ void Window::run() {
 }
 
 void Window::startRenderTimeMeasure() {
-	measuringRenderTimes = true;
 	numRendersMeasured = 0;
 	totalRenderTimes = 0;
 }
 
 void Window::stopRenderTimeMeasure() {
-	measuringRenderTimes = false;
-	double averageRenderTime = totalRenderTimes / numRendersMeasured;
-	std::cout << "Average render time over " << numRendersMeasured << " renders is: " << averageRenderTime << std::endl;
+	averageRenderTime = totalRenderTimes / numRendersMeasured;
+	startRenderTimeMeasure();
 }
 
 void Window::display() {
@@ -297,6 +306,14 @@ void Window::display() {
 		rayTracer.scene.lights[0].position[0] += 1;
 		rayTracer.scene.spheres[0].position[0] += 1;
 	}
+	if (keys['u']) {
+		rayTracer.scene.lights[0].position[1] += 1;
+		rayTracer.scene.spheres[0].position[1] += 1;
+	}
+	if (keys['o']) {
+		rayTracer.scene.lights[0].position[1] -= 1;
+		rayTracer.scene.spheres[0].position[1] -= 1;
+	}
 
 	rayTracer.scene.spheres[0].radius = rayTracer.config.softShadowRadius;
 	rayTracer.scene.planes[0].mat.ambientColour = vec3(0.1, 0.1, 0.1) * (float)rayTracer.config.floorBrightness;
@@ -325,7 +342,7 @@ void Window::display() {
 	if (measuringRenderTimes) {
 		numRendersMeasured++;
 		totalRenderTimes += lastRenderTime;
-		if (numRendersMeasured == 100) {
+		if (numRendersMeasured == maxRendersToMeasure) {
 			stopRenderTimeMeasure();
 		}
 	}
