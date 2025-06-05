@@ -59,8 +59,6 @@ __device__ vec3 lighting(Material mat, vec3 lightPos, vec3 lightIntensity, vec3 
 			float RdotV = max(dot(r, v), 0.0f);
 			colour += mat.specular * lightIntensity * pow(RdotV, mat.shininess);
 		}
-
-
 	}
 
 	return colour;
@@ -97,12 +95,12 @@ template<typename T> __device__ bool traceRay(T* objects, int objectCount, vec3 
 	return false;
 }
 
-__device__ bool modelTraceRay(Model* models, int modelCount, vec3 origin, vec3 dir, RayType rayType, Hit& hit, bool accelerate) {
+__device__ bool modelTraceRay(Model* models, int modelCount, vec3 origin, vec3 dir, RayType rayType, Hit& hit, bool accelerate, bool accelerateTwice, bool octree, bool cull) {
 	for (int i = 0; i < modelCount; i++) {
 
 		float t0, t1;
 		Vertex hitVertex;
-		if (models[i].hit(origin, dir, t0, t1, hitVertex, rayType, accelerate)) {
+		if (models[i].hit(origin, dir, t0, t1, hitVertex, rayType, accelerate, accelerateTwice, octree, cull)) {
 
 			if (rayType == ShadowRay) {
 				if (!models[i].debug) return true;
@@ -134,7 +132,7 @@ __device__ vec3 reflectionCast3(vec3& origin, vec3& dir, Scene& scene, SceneConf
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, closestHit);
 	bool planeTrace = config.reflectPlanes ? traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, closestHit) : false;
 	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
-	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, ReflectRay, closestHit, config.boundingBox) : false;
+	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, ReflectRay, closestHit, config.boundingBox, config.eightBoundingBoxes, config.octree, config.cullBackTriangles) : false;
 
 	if (sphereTrace || planeTrace || AABBTrace || modelTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
@@ -156,7 +154,7 @@ __device__ vec3 reflectionCast2(vec3& origin, vec3& dir, Scene& scene, SceneConf
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, closestHit);
 	bool planeTrace = config.reflectPlanes ? traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, closestHit) : false;
 	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
-	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit, config.boundingBox) : false;
+	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit, config.boundingBox, config.eightBoundingBoxes, config.octree, config.cullBackTriangles) : false;
 
 	if (sphereTrace || planeTrace || AABBTrace || modelTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
@@ -192,7 +190,7 @@ __device__ vec3 reflectionCast(vec3& origin, vec3& dir, Scene& scene, SceneConfi
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, ReflectRay, closestHit);
 	bool planeTrace = config.reflectPlanes ? traceRay(scene.planes, scene.planeCount, origin, dir, ReflectRay, closestHit) : false;
 	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
-	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, ReflectRay, closestHit, config.boundingBox) : false;
+	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, ReflectRay, closestHit, config.boundingBox, config.eightBoundingBoxes, config.octree, config.cullBackTriangles) : false;
 
 	if (sphereTrace || planeTrace || AABBTrace || modelTrace) {
 		vec3 col = lighting(closestHit.mat, scene.lights[0].position, scene.lights[0].colour, closestHit.hitPoint, scene.cam.getPosition(), normalise(closestHit.normal), config);
@@ -228,7 +226,7 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 	bool sphereTrace = traceRay(scene.spheres, scene.sphereCount, origin, dir, PrimaryRay, closestHit);
 	bool planeTrace = traceRay(scene.planes, scene.planeCount, origin, dir, PrimaryRay, closestHit);
 	bool AABBTrace = config.renderAABBs ? traceRay(scene.AABBs, scene.AABBCount, origin, dir, ReflectRay, closestHit) : false;
-	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit, config.boundingBox) : false;
+	bool modelTrace = config.renderModels ? modelTraceRay(scene.models, scene.modelCount, origin, dir, PrimaryRay, closestHit, config.boundingBox, config.eightBoundingBoxes, config.octree, config.cullBackTriangles) : false;
 
 	int x = blockIdx.x * blockDim.x + threadIdx.x;
 	int y = blockIdx.y * blockDim.y + threadIdx.y;
@@ -271,8 +269,11 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 				Hit shadowHit;
 				bool sphereShadowTrace = traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
 				bool AABBShadowTrace = traceRay(scene.AABBs, scene.AABBCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit);
-				bool modelShadowTrace = modelTraceRay(scene.models, scene.modelCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit, config.boundingBox);
-				col = (sphereShadowTrace || AABBShadowTrace || modelShadowTrace) ? col * config.shadowIntensity : col;
+				bool modelShadowTrace = modelTraceRay(scene.models, scene.modelCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(scene.lights[0].position - closestHit.hitPoint), ShadowRay, shadowHit, config.boundingBox, config.eightBoundingBoxes, config.octree, config.cullBackTriangles);
+				if (shadowHit.t >= 0) {
+					col = (sphereShadowTrace || AABBShadowTrace || modelShadowTrace) ? col * config.shadowIntensity : col;
+				}
+				
 			}
 
 			if (config.renderSoftShadows) {
@@ -300,7 +301,7 @@ __device__ vec3 rayCast(vec3& origin, vec3& dir, Scene& scene, SceneConfig& conf
 					Hit hit;
 					hits += traceRay(scene.spheres, scene.sphereCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
 					hits += traceRay(scene.AABBs, scene.AABBCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit) ? 1 : 0;
-					hits += modelTraceRay(scene.models, scene.modelCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit, config.boundingBox) ? 1 : 0;
+					hits += modelTraceRay(scene.models, scene.modelCount, closestHit.hitPoint + closestHit.normal * config.shadowBias, normalise(lightPoint - closestHit.hitPoint), ShadowRay, hit, config.boundingBox, config.eightBoundingBoxes, config.octree, config.cullBackTriangles) ? 1 : 0;
 				}
 				col = col * (1 - ((float)hits / config.softShadowNum));
 			}

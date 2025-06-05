@@ -31,6 +31,12 @@
     <CudaCompile Include="AABB.cpp" />
     <CudaCompile Include="AABB.h" />
     <CudaCompile Include="stb_image.h" />
+    <CudaCompile Include="queue.h" />
+    <CudaCompile Include="queue.cpp" />
+    <CudaCompile Include="OctreeNode.cpp" />
+    <CudaCompile Include="OctreeNode.h" />
+    <CudaCompile Include="Octree.cpp" />
+    <CudaCompile Include="Octree.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="imgui\imgui.cpp">

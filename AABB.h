@@ -17,7 +17,11 @@ public:
 	__host__ __device__ void extendBy(vec3 point);
 	__host__ __device__ bool hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1);
 	__host__ __device__ vec3 normalAt(vec3 point);
+	__host__ __device__ void setupIndices(int indicesCount);
 
 	vec3 min, max;
+
+	int indicesCount;
+	int* includedModelIndices;
 };
 

@@ -24,15 +24,14 @@ AABB::AABB(vec3 min, vec3 max, Material mat, bool debug, ObjectType objectType) 
 }
 
 __host__ __device__ void AABB::extendBy(vec3 point) {
-	if (point.x() < min.x()) min.nums[0] = point.x();
-	if (point.y() < min.y()) min.nums[1] = point.y();
-	if (point.z() < min.z()) min.nums[2] = point.z();
+	if (point.x() < min.x()) min.nums[0] = point.x() - 0.1;
+	if (point.y() < min.y()) min.nums[1] = point.y() - 0.1;
+	if (point.z() < min.z()) min.nums[2] = point.z() - 0.1;
 
-	if (point.x() > max.x()) max.nums[0] = point.x();
-	if (point.y() > max.y()) max.nums[1] = point.y();
-	if (point.z() > max.z()) max.nums[2] = point.z();
+	if (point.x() > max.x()) max.nums[0] = point.x() + 0.1;
+	if (point.y() > max.y()) max.nums[1] = point.y() + 0.1;
+	if (point.z() > max.z()) max.nums[2] = point.z() + 0.1;
 }
-
 
 __host__ __device__ bool AABB::hit(vec3 rayOrigin, vec3 rayDir, float& t0, float& t1) {
 	// get tmin_x and tmax_x and put them in the correct order
@@ -93,4 +92,10 @@ __host__ __device__ vec3 AABB::normalAt(vec3 point) {
 	vec3 normal = normalise(vec3(int(p.x() / d.x() * bias), int(p.y() / d.y() * bias), int(p.z() / d.z() * bias)));
 	//printf("%f, %f, %f\n", normal.x(), normal.y(), normal.z());
 	return normal;
+}
+
+__host__ __device__ void AABB::setupIndices(int indicesCount) {
+	this->indicesCount = indicesCount;
+	cudaMallocManaged((void**)&includedModelIndices, indicesCount * sizeof(int));
+	cudaDeviceSynchronize();
 }

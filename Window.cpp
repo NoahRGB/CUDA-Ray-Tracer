@@ -52,15 +52,16 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 		if (key == GLFW_KEY_U) win->keys['u'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['u'];
 		if (key == GLFW_KEY_O) win->keys['o'] = action == GLFW_PRESS ? true : action == GLFW_RELEASE ? false : win->keys['o'];
 
-		if (key == GLFW_KEY_V) {
+		if (key == GLFW_KEY_H) {
 			std::cout << win->rayTracer.scene.cam.getPosition().x() << ", " << win->rayTracer.scene.cam.getPosition().y() << ", " << win->rayTracer.scene.cam.getPosition().z() << " and " << win->rayTracer.scene.cam.yaw << ", " << win->rayTracer.scene.cam.pitch << std::endl;
+			std::cout << "Light: " << win->rayTracer.scene.lights[0].position.x() << ", " << win->rayTracer.scene.lights[0].position.y() << ", " << win->rayTracer.scene.lights[0].position.z() << std::endl;
 		}
 
 		if (key == GLFW_KEY_R && action == GLFW_PRESS) {
 			win->startRenderTimeMeasure();
 		}
 
-		if (key == GLFW_KEY_1 && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_LEFT_CONTROL && action == GLFW_PRESS) {
 			if (!win->mouseEnabled) {
 				win->mouseEnabled = true;
 				win->firstMouse = true;
@@ -72,14 +73,75 @@ void Window::keyInput(GLFWwindow* window, int key, int scancode, int action, int
 			}
 		}
 
-		if (key == GLFW_KEY_V && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_Z && action == GLFW_PRESS) { // empty scene
 			win->rayTracer.switchScene(0);
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
 		}
-		if (key == GLFW_KEY_N && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_X && action == GLFW_PRESS) { // spheres for reflections
 			win->rayTracer.switchScene(1);
+			win->rayTracer.config.maxDepth = 1;
+			win->rayTracer.config.renderHardShadows = false;
+			win->rayTracer.config.renderSoftShadows = false;
+			win->rayTracer.config.reflections = true;
+			//win->rayTracer.config.backgroundBrightness = 7;
+			//win->rayTracer.config.floorBrightness = 3;
+			win->rayTracer.config.reflectPlanes = true;
+			win->rayTracer.config.planeReflectionStrength = 0.5;
+			win->rayTracer.config.sphereReflectionStrength = 0.7;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
 		}
-		if (key == GLFW_KEY_M && action == GLFW_PRESS) {
+		if (key == GLFW_KEY_C && action == GLFW_PRESS) { // spheres for shadows
+			win->rayTracer.switchScene(5);
+			win->rayTracer.config.reflections = false;
+			win->rayTracer.config.renderHardShadows = true;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
+		}
+		if (key == GLFW_KEY_V && action == GLFW_PRESS) { // 100 spheres
 			win->rayTracer.switchScene(2);
+			win->rayTracer.config.renderHardShadows = false;
+			win->rayTracer.config.renderSoftShadows = false;
+			win->rayTracer.config.reflections = false;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
+		}
+		if (key == GLFW_KEY_B && action == GLFW_PRESS) { // boxes
+			win->rayTracer.switchScene(3);
+			win->rayTracer.config.reflections = true;
+			win->rayTracer.config.planeReflectionStrength = 0.22;
+			win->rayTracer.config.renderHardShadows = false;
+			win->rayTracer.config.renderSoftShadows = false;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
+		}
+		if (key == GLFW_KEY_N && action == GLFW_PRESS) { // reflective boxes + spheres
+			win->rayTracer.switchScene(7);
+			win->rayTracer.config.renderHardShadows = false;
+			win->rayTracer.config.renderSoftShadows = false;
+			win->rayTracer.config.reflections = true;
+			win->rayTracer.config.reflectPlanes = true;
+			win->rayTracer.config.maxDepth = 1;
+			win->rayTracer.config.planeReflectionStrength = 0.5;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
+		}
+		if (key == GLFW_KEY_M && action == GLFW_PRESS) { // single chest model
+			win->rayTracer.config.renderHardShadows = false;
+			win->rayTracer.config.renderSoftShadows = false;
+			win->rayTracer.config.reflections = false;
+			win->rayTracer.switchScene(6);
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
+		}
+		if (key == GLFW_KEY_COMMA && action == GLFW_PRESS) { // reflective box + model
+			win->rayTracer.switchScene(8);
+			win->rayTracer.config.reflections = true;
+			win->rayTracer.config.reflectPlanes = true;
+			win->rayTracer.config.planeReflectionStrength = 0.5;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
+		}
+		if (key == GLFW_KEY_PERIOD && action == GLFW_PRESS) { // table + book + cup close up
+			win->rayTracer.switchScene(4);
+			win->rayTracer.config.renderHardShadows = true;
+			win->rayTracer.config.renderSoftShadows = false;
+			win->rayTracer.config.reflections = true;
+			win->rayTracer.config.modelReflectionStrength = 0.8;
+			win->rayTracer.scene.cam.mouseMovement(0, 0);
 		}
 	}
 }
@@ -167,15 +229,17 @@ void Window::run() {
 		ImGui::Text("Average render time: %f over %d renders", averageRenderTime, maxRendersToMeasure);
 		ImGui::Checkbox("Anti aliasing?", &rayTracer.config.antiAliasing);
 		ImGui::Checkbox("Use bounding boxes?", &rayTracer.config.boundingBox);
+		ImGui::Checkbox("Use 8 bounding boxes?", &rayTracer.config.eightBoundingBoxes);
+		ImGui::Checkbox("Cull back triangles?", &rayTracer.config.cullBackTriangles);
 		ImGui::Checkbox("Render boxes", &rayTracer.config.renderAABBs);
 		ImGui::Checkbox("Render models", &rayTracer.config.renderModels);
 		ImGui::SliderInt("Background brightness", &rayTracer.config.backgroundBrightness, 1, 10);
-		ImGui::SliderInt("Reflection depth", &rayTracer.config.maxDepth, 0, 3);
 		ImGui::SliderInt("Floor brightness", &rayTracer.config.floorBrightness, 1, 10);
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
 		if (ImGui::CollapsingHeader("Lighting options")) {
 			ImGui::SeparatorText("Lighting");
 			ImGui::Checkbox("Hard Shadows", &rayTracer.config.renderHardShadows);
+			ImGui::SliderFloat("Hard shadow intensity", &rayTracer.config.shadowIntensity, 0.0, 1.0);
 			ImGui::Checkbox("Soft Shadows", &rayTracer.config.renderSoftShadows);
 			ImGui::SliderInt("Soft shadow radius", &rayTracer.config.softShadowRadius, 1, 15);
 			ImGui::SliderInt("Soft shadow casts", &rayTracer.config.softShadowNum, 1, 50);
@@ -185,12 +249,12 @@ void Window::run() {
 			ImGui::Checkbox("Diffuse lighting", &rayTracer.config.diffuseLighting);
 			ImGui::Checkbox("Specular lighting", &rayTracer.config.specularLighting);
 			ImGui::Checkbox("Reflections", &rayTracer.config.reflections);
+			ImGui::SliderInt("Reflection depth", &rayTracer.config.maxDepth, 1, 2);
 			ImGui::Checkbox("Reflect planes", &rayTracer.config.reflectPlanes);
 			ImGui::SliderFloat("Sphere Reflection strength", &rayTracer.config.sphereReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Plane Reflection strength", &rayTracer.config.planeReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Box Reflection strength", &rayTracer.config.AABBReflectionStrength, 0.0, 1.0);
 			ImGui::SliderFloat("Model Reflection strength", &rayTracer.config.modelReflectionStrength, 0.0, 1.0);
-			ImGui::SliderFloat("Shadow intensity", &rayTracer.config.shadowIntensity, 0.0, 1.0);
 		}
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
 		if (ImGui::CollapsingHeader("Create sphere")) {
@@ -212,25 +276,25 @@ void Window::run() {
 				rayTracer.addSphere(pos, radius, { ambientCol, diffuseCol, ambient, diffuse, specular, shininess }, reflective ? Reflect : Diffuse);
 			}
 		}
-		ImGui::Dummy(ImVec2(0.0f, 20.0f));
-		if (ImGui::CollapsingHeader("Create plane")) {
-			ImGui::SeparatorText("Create plane");
-			static vec3 pos, normal, ambientCol(1.0, 0.0, 0.0), diffuseCol(1.0, 0.0, 0.0);
-			static float ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
-			static bool reflective = false;
-			ImGui::InputFloat3("Pos", pos.nums);
-			ImGui::InputFloat3("Ambient colour", ambientCol.nums);
-			ImGui::InputFloat3("Diffuse colour", diffuseCol.nums);
-			ImGui::InputFloat3("Direction", normal.nums);
-			ImGui::InputFloat("Ambient", &ambient);
-			ImGui::InputFloat("Diffuse", &diffuse);
-			ImGui::InputFloat("Specular", &specular);
-			ImGui::InputFloat("Shininess", &shininess);
-			ImGui::Checkbox("Reflective?", &reflective);
-			if (ImGui::Button("Create Plane")) {
-				rayTracer.addPlane(pos, normal, { ambientCol, diffuseCol, ambient, diffuse, specular, shininess}, reflective ? Reflect : Diffuse);
-			}
-		}
+		//ImGui::Dummy(ImVec2(0.0f, 20.0f));
+		//if (ImGui::CollapsingHeader("Create plane")) {
+		//	ImGui::SeparatorText("Create plane");
+		//	static vec3 pos, normal, ambientCol(1.0, 0.0, 0.0), diffuseCol(1.0, 0.0, 0.0);
+		//	static float ambient = 0.1, diffuse = 0.9, specular = 0.5, shininess = 200.0;
+		//	static bool reflective = false;
+		//	ImGui::InputFloat3("Pos", pos.nums);
+		//	ImGui::InputFloat3("Ambient colour", ambientCol.nums);
+		//	ImGui::InputFloat3("Diffuse colour", diffuseCol.nums);
+		//	ImGui::InputFloat3("Direction", normal.nums);
+		//	ImGui::InputFloat("Ambient", &ambient);
+		//	ImGui::InputFloat("Diffuse", &diffuse);
+		//	ImGui::InputFloat("Specular", &specular);
+		//	ImGui::InputFloat("Shininess", &shininess);
+		//	ImGui::Checkbox("Reflective?", &reflective);
+		//	if (ImGui::Button("Create Plane")) {
+		//		rayTracer.addPlane(pos, normal, { ambientCol, diffuseCol, ambient, diffuse, specular, shininess}, reflective ? Reflect : Diffuse);
+		//	}
+		//}
 		ImGui::Dummy(ImVec2(0.0f, 20.0f));
 		if (ImGui::CollapsingHeader("Create box")) {
 			ImGui::SeparatorText("Create AABB");

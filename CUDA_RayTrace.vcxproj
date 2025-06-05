@@ -22,6 +22,9 @@
     </None>
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="Octree.cpp" />
+    <CudaCompile Include="OctreeNode.cpp" />
+    <CudaCompile Include="queue.cpp" />
     <CudaCompile Include="Triangle.cpp" />
     <CudaCompile Include="Sphere.cpp" />
     <CudaCompile Include="Camera.cpp" />
@@ -45,6 +48,9 @@
     <CudaCompile Include="Window.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <CudaCompile Include="Octree.h" />
+    <CudaCompile Include="OctreeNode.h" />
+    <CudaCompile Include="queue.h" />
     <CudaCompile Include="stb_image.h" />
     <CudaCompile Include="Sphere.h" />
     <CudaCompile Include="Camera.h" />
